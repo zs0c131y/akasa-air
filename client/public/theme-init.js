@@ -2,7 +2,7 @@
 // apply with no flash. Mirrors the logic in src/theme.jsx.
 (function () {
   try {
-    var t = localStorage.getItem('lms-theme') || 'system';
+    var t = localStorage.getItem('lms-theme') || 'light';
     var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
     var s = localStorage.getItem('lms-text');

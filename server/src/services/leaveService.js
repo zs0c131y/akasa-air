@@ -4,16 +4,18 @@ import {
   MAX_FILE_BYTES,
   ALLOWED_MIME,
   STATUSES,
-  countLeaveDays,
+  leaveBreakdown,
+  makeLeaveInputSchema,
+  documentsAccepted,
   isLongLeave,
   documentRequirementError,
   emergencyBlockMessage,
-  leaveInputSchema,
   todayISO,
   parseISODate,
   zodFields,
 } from '@lms/shared';
 import { LeaveRequest } from '../models/LeaveRequest.js';
+import { holidaysFor, listHolidays } from './holidayService.js';
 import { AppError, notFound, conflict, validationError } from '../errors.js';
 import { storage, sniffMime, safeFilename } from '../storage/index.js';
 import { allowedActions, applyAction, initialStatus } from '../workflow.js';
@@ -66,6 +68,7 @@ export function serialize(doc, user) {
     fromDate: doc.fromDate,
     toDate: doc.toDate,
     days: doc.days,
+    excluded: { sundays: doc.excludedSundays ?? 0, holidays: (doc.excludedHolidays ?? []).map((h) => ({ date: h.date, name: h.name })) },
     isLong: doc.isLong,
     reason: doc.reason,
     isEmergency: doc.isEmergency,
@@ -132,8 +135,13 @@ async function storeFiles(prepared, user) {
   return docs;
 }
 
-function parseLeaveInput(body, user) {
-  const parsed = leaveInputSchema.safeParse(body);
+async function parseLeaveInput(body, user) {
+  // The holiday calendar is the single source of truth for what is not counted, on the server and in the form.
+  const from = typeof body?.fromDate === 'string' ? body.fromDate : '';
+  const to = typeof body?.toDate === 'string' ? body.toDate : '';
+  // National holidays plus the ones for the employee's own location.
+  const holidays = from && to && from <= to ? await holidaysFor(user, { from, to }) : [];
+  const parsed = makeLeaveInputSchema(holidays).safeParse(body);
   if (!parsed.success) throw validationError(zodFields(parsed.error));
   const input = parsed.data;
   if (input.employeeName && input.employeeName.toLowerCase() !== user.name.toLowerCase()) {
@@ -142,7 +150,15 @@ function parseLeaveInput(body, user) {
       'The employee name does not match the signed-in user.',
     );
   }
-  return { ...input, days: countLeaveDays(input.fromDate, input.toDate) };
+  const b = leaveBreakdown(input.fromDate, input.toDate, holidays);
+  return { ...input, days: b.days, excludedSundays: b.sundays, excludedHolidays: b.holidays };
+}
+
+const NO_DOCS_MSG = 'Supporting documents are only accepted for leave longer than 3 days. This request does not need one.';
+
+/** Short leave neither needs nor accepts documents. */
+function assertDocumentsAllowed(days, count) {
+  if (count > 0 && !documentsAccepted(days)) throw validationError({ documents: NO_DOCS_MSG }, NO_DOCS_MSG);
 }
 
 /** Emergency leaves that still owe documents. */
@@ -198,8 +214,9 @@ async function assertNoOverlap(employeeId, fromDate, toDate, excludeId) {
 }
 
 export async function createLeave(user, body, files) {
-  const input = parseLeaveInput(body, user);
+  const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files);
+  assertDocumentsAllowed(input.days, prepared.length);
   const docMsg = documentRequirementError(input.days, prepared.length, input.isEmergency);
   if (docMsg) throw validationError({ documents: docMsg }, docMsg);
   await assertNoOverlap(user.id, input.fromDate, input.toDate);
@@ -217,6 +234,8 @@ export async function createLeave(user, body, files) {
     fromDate: input.fromDate,
     toDate: input.toDate,
     days: input.days,
+    excludedSundays: input.excludedSundays,
+    excludedHolidays: input.excludedHolidays,
     isLong: isLongLeave(input.days),
     reason: input.reason,
     isEmergency: input.isEmergency,
@@ -300,8 +319,9 @@ export async function transition(id, user, action, { comment, expectedVersion, f
 /** Employee edits dates/reason (and may add documents) before any approval has happened. */
 export async function updateLeave(id, user, body, files) {
   const doc = await load(id, user);
-  const input = parseLeaveInput(body, user);
+  const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files, doc.documents.length);
+  assertDocumentsAllowed(input.days, prepared.length);
   const isLong = isLongLeave(input.days);
   const docMsg = documentRequirementError(input.days, doc.documents.length + prepared.length, input.isEmergency);
   if (docMsg) throw validationError({ documents: docMsg }, docMsg);
@@ -312,6 +332,8 @@ export async function updateLeave(id, user, body, files) {
   doc.fromDate = input.fromDate;
   doc.toDate = input.toDate;
   doc.days = input.days;
+  doc.excludedSundays = input.excludedSundays;
+  doc.excludedHolidays = input.excludedHolidays;
   doc.isLong = isLong;
   doc.reason = input.reason;
   doc.isEmergency = input.isEmergency;
@@ -326,11 +348,53 @@ export async function attachDocuments(id, user, files) {
   const doc = await load(id, user);
   const prepared = prepareFiles(files, doc.documents.length);
   if (prepared.length === 0) throw validationError({ documents: 'Please choose at least one PDF, JPG or PNG file.' });
+  if (!doc.isLong) throw validationError({ documents: NO_DOCS_MSG }, NO_DOCS_MSG);
   applyAction(toSubject(doc), 'ATTACH', actorOf(user), todayISO());
   doc.documents.push(...(await storeFiles(prepared, user)));
   doc.timeline.push(entry(user, 'ATTACH', doc.status, doc.status, `Sent ${prepared.length} supporting document${prepared.length > 1 ? 's' : ''}.`));
   await save(doc);
   return serialize(doc, user);
+}
+
+/**
+ * Who is away between two dates, plus the holidays that apply to the caller. Powers the team calendar.
+ * HOD: everyone. Manager: their team and themselves. Employee: their own requests, and teammates' approved leave
+ * (name and dates only: reasons and documents stay private).
+ */
+export async function calendar(user, { from, to }) {
+  if (parseISODate(from) === null || parseISODate(to) === null || from > to) {
+    throw validationError({ from: 'Please give a start and an end date, start first (YYYY-MM-DD).' });
+  }
+  if ((parseISODate(to) - parseISODate(from)) / 86400000 > 62) {
+    throw validationError({ to: 'Please ask for at most about two months at a time.' });
+  }
+  let who;
+  if (user.role === 'HOD') who = { status: { $in: ACTIVE } };
+  else if (user.role === 'MANAGER') who = { status: { $in: ACTIVE }, $or: [{ managerId: user.id }, { employeeId: user.id }] };
+  else {
+    who = { $or: [{ employeeId: user.id, status: { $in: ACTIVE } }, ...(user.managerId ? [{ managerId: user.managerId, status: 'APPROVED' }] : [])] };
+  }
+  const [rows, holidays] = await Promise.all([
+    LeaveRequest.find({ ...who, fromDate: { $lte: to }, toDate: { $gte: from } }).sort({ fromDate: 1, employeeName: 1 }).limit(500).lean(),
+    listHolidays(user, { from, to }),
+  ]);
+  return {
+    from,
+    to,
+    holidays,
+    items: rows.map((d) => ({
+      id: String(d._id),
+      employeeId: sid(d.employeeId),
+      employeeName: d.employeeName,
+      fromDate: d.fromDate,
+      toDate: d.toDate,
+      days: d.days,
+      status: d.status,
+      isLong: d.isLong,
+      mine: sid(d.employeeId) === user.id,
+      canOpen: canView(d, user),
+    })),
+  };
 }
 
 /** Returns { stream, name, mimeType } after an access check. */

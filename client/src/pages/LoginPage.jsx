@@ -2,19 +2,25 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '../auth.jsx';
-import { Avatar, ErrorBox, FieldError, Wordmark } from '../components.jsx';
+import { Avatar, Brand, ErrorBox, FieldError } from '../components.jsx';
 import { ThemeToggle } from '../theme.jsx';
 import { Button } from '../ui/button.jsx';
 import { Input, Label } from '../ui/input.jsx';
 
 const PASSWORD = 'Password@123';
 const DEMO_GROUPS = [
-  ['Head of Department', [['Priya Nair', 'priya.nair', 'Final approver, sees the audit log']]],
-  ['Managers', [['Rahul Mehta', 'rahul.mehta', 'Approves for the team'], ['Ananya Iyer', 'ananya.iyer', 'Approves for the team']]],
+  ['Head of Department', [['Priya Nair', 'priya.nair', 'Gives the final yes on long leave. Sees every request, the audit log and the holiday list.']]],
+  ['Managers', [
+    ['Rahul Mehta', 'rahul.mehta', 'Has requests from his team waiting for a decision.'],
+    ['Ananya Iyer', 'ananya.iyer', 'Has approved some requests and passed others on to the HOD.'],
+  ]],
   ['Employees', [
-    ['Arjun Sharma', 'arjun.sharma', 'Has requests waiting'], ['Kavya Reddy', 'kavya.reddy', 'Asked for more information'],
-    ['Rohan Das', 'rohan.das', 'Long leave at the HOD stage'], ['Sneha Kulkarni', 'sneha.kulkarni', 'Approved and pending leave'],
-    ['Imran Khan', 'imran.khan', 'Emergency leave owing documents'], ['Meera Joshi', 'meera.joshi', 'Waiting on a reply'],
+    ['Arjun Sharma', 'arjun.sharma', 'Has two requests waiting on a manager.'],
+    ['Kavya Reddy', 'kavya.reddy', 'Was asked for more information and can reply.'],
+    ['Rohan Das', 'rohan.das', 'Has long leave waiting on the HOD.'],
+    ['Sneha Kulkarni', 'sneha.kulkarni', 'Has one request approved and one at the HOD.'],
+    ['Imran Khan', 'imran.khan', 'Filed emergency leave and still owes the documents.'],
+    ['Meera Joshi', 'meera.joshi', 'The HOD asked her for a return ticket.'],
   ]],
 ];
 
@@ -37,65 +43,82 @@ export default function LoginPage() {
     }
   };
 
+  const submit = (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError({ message: 'Enter your email and password to sign in.', hint: 'No account yet? Pick a person from the list below instead.' });
+      return;
+    }
+    signIn(email, password);
+  };
+
   return (
     <div className="min-h-screen">
-      <header className="container flex h-16 items-center justify-between">
-        <Link to="/" className="rounded-md" aria-label="Leave Desk home"><Wordmark /></Link>
-        <ThemeToggle />
-      </header>
-      <main className="container grid gap-10 pb-20 pt-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-20 lg:pt-14">
-        <div>
-          <Link to="/" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" aria-hidden="true" /> Back to home
-          </Link>
-          <h1 className="font-display text-5xl leading-none tracking-tight">Welcome back</h1>
-          <p className="mt-3 text-muted-foreground">Sign in to apply for leave or review requests.</p>
-          <ErrorBox error={error} className="mt-6" />
-          <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} noValidate className="mt-6 space-y-5">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(error?.fields?.email)} />
-              <FieldError msg={error?.fields?.email} />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(error?.fields?.password)} />
-              <FieldError msg={error?.fields?.password} />
-            </div>
-            <Button className="w-full" size="lg" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
-          </form>
+      <header className="border-b">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="rounded-md" aria-label="Layover by Akasa Air, home"><Brand /></Link>
+          <ThemeToggle />
         </div>
-
-        <section aria-labelledby="demo-title" className="rounded-xl border bg-card p-5 shadow-soft sm:p-7">
-          <h2 id="demo-title" className="text-lg font-semibold tracking-tight">Or sign in with a demo account</h2>
-          <p className="mt-1 text-sm text-muted-foreground">One click, no password. Each person comes with their own requests, so you can see every screen.</p>
-          <div className="mt-6 space-y-6">
-            {DEMO_GROUPS.map(([group, people]) => (
-              <div key={group}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group}</h3>
-                <ul className="grid gap-2 sm:grid-cols-2">
-                  {people.map(([name, slug, note]) => (
-                    <li key={slug}>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => signIn(`${slug}@akasa.demo`, PASSWORD)}
-                        className="group flex min-h-14 w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left transition-colors hover:border-foreground/40 hover:bg-accent disabled:opacity-50"
-                      >
-                        <Avatar name={name} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{name}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{note}</span>
-                        </span>
-                        <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      </header>
+      <main id="content" className="container pb-24 pt-8 sm:pt-12">
+        <Link to="/" className="mb-8 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" aria-hidden="true" /> Back to home
+        </Link>
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-16">
+          <div>
+            <p className="kicker mb-2.5">Sign in</p>
+            <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">Welcome back</h1>
+            <p className="mt-2.5 text-muted-foreground">Apply for leave, or see what is waiting for your decision.</p>
+            <div className="mt-7 rounded-lg border bg-card p-5 shadow-soft sm:p-6">
+              <ErrorBox error={error} className="mb-5" />
+              <form onSubmit={submit} noValidate className="space-y-5">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(error?.fields?.email)} />
+                  <FieldError msg={error?.fields?.email} />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(error?.fields?.password)} />
+                  <FieldError msg={error?.fields?.password} />
+                </div>
+                <Button variant="brand" className="w-full" size="lg" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</Button>
+              </form>
+            </div>
           </div>
-        </section>
+
+          <section aria-labelledby="demo-title">
+            <p className="kicker mb-2.5">Or try the demo</p>
+            <h2 id="demo-title" className="font-display text-2xl leading-tight sm:text-3xl">Pick a person to sign in as</h2>
+            <p className="mt-2.5 max-w-xl text-muted-foreground">One click, no password. Each person has their own requests, so you can follow a request from the employee to the manager to the HOD.</p>
+            <div className="mt-7 space-y-7">
+              {DEMO_GROUPS.map(([group, people]) => (
+                <div key={group}>
+                  <h3 className="kicker mb-3">{group}</h3>
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {people.map(([name, slug, note]) => (
+                      <li key={slug}>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => signIn(`${slug}@akasa.demo`, PASSWORD)}
+                          className="group flex h-full min-h-[4.5rem] w-full items-start gap-3.5 rounded-lg border bg-card p-4 text-left shadow-soft transition-colors hover:border-foreground/40 hover:bg-accent/50 disabled:opacity-50"
+                        >
+                          <Avatar name={name} className="size-11" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold">{name}</span>
+                            <span className="mt-0.5 block text-sm text-muted-foreground">{note}</span>
+                          </span>
+                          <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );

@@ -7,15 +7,15 @@ import { storage } from './storage/index.js';
 export const DEMO_PASSWORD = 'Password@123';
 
 export const DEMO_USERS = [
-  { key: 'hod', name: 'Priya Nair', email: 'priya.nair@akasa.demo', role: 'HOD' },
-  { key: 'rahul', name: 'Rahul Mehta', email: 'rahul.mehta@akasa.demo', role: 'MANAGER', boss: 'hod' },
-  { key: 'ananya', name: 'Ananya Iyer', email: 'ananya.iyer@akasa.demo', role: 'MANAGER', boss: 'hod' },
-  { key: 'arjun', name: 'Arjun Sharma', email: 'arjun.sharma@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
-  { key: 'kavya', name: 'Kavya Reddy', email: 'kavya.reddy@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
-  { key: 'rohan', name: 'Rohan Das', email: 'rohan.das@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
-  { key: 'sneha', name: 'Sneha Kulkarni', email: 'sneha.kulkarni@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
-  { key: 'imran', name: 'Imran Khan', email: 'imran.khan@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
-  { key: 'meera', name: 'Meera Joshi', email: 'meera.joshi@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
+  { key: 'hod', location: 'Bengaluru', name: 'Priya Nair', email: 'priya.nair@akasa.demo', role: 'HOD' },
+  { key: 'rahul', location: 'Bengaluru', name: 'Rahul Mehta', email: 'rahul.mehta@akasa.demo', role: 'MANAGER', boss: 'hod' },
+  { key: 'ananya', location: 'Mumbai', name: 'Ananya Iyer', email: 'ananya.iyer@akasa.demo', role: 'MANAGER', boss: 'hod' },
+  { key: 'arjun', location: 'Bengaluru', name: 'Arjun Sharma', email: 'arjun.sharma@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
+  { key: 'kavya', location: 'Bengaluru', name: 'Kavya Reddy', email: 'kavya.reddy@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
+  { key: 'rohan', location: 'Bengaluru', name: 'Rohan Das', email: 'rohan.das@akasa.demo', role: 'EMPLOYEE', boss: 'rahul' },
+  { key: 'sneha', location: 'Mumbai', name: 'Sneha Kulkarni', email: 'sneha.kulkarni@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
+  { key: 'imran', location: 'Mumbai', name: 'Imran Khan', email: 'imran.khan@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
+  { key: 'meera', location: 'Mumbai', name: 'Meera Joshi', email: 'meera.joshi@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
 ];
 
 /** Demo dates never start or end on a Sunday (Sundays are not counted as leave). */
@@ -36,6 +36,7 @@ export async function seedIfEmpty() {
       role: u.role,
       passwordHash,
       managerId: u.boss ? byKey[u.boss]._id : null,
+      location: u.location ?? null,
     });
   }
   const key = await storage.save(SAMPLE_PDF);

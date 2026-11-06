@@ -1,28 +1,28 @@
 import { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Ban, CircleAlert, CircleCheck, CircleHelp, CircleX, Clock, Hourglass, SearchX, ShieldAlert, WifiOff } from 'lucide-react';
-import { STATUSES, STATUS_LABELS } from '@lms/shared';
+import { Ban, CircleAlert, CircleCheck, CircleHelp, CircleX, Clock, Hourglass } from 'lucide-react';
+import { STATUSES, STATUS_LABELS, excludedSummary } from '@lms/shared';
+import { ClosedGate, LostTag, Person, Unplugged } from './illustrations.jsx';
 import { Badge } from './ui/badge.jsx';
 import { Button } from './ui/button.jsx';
-import { Card } from './ui/card.jsx';
 import { cn } from './lib/utils.js';
 
-export function BrandMark({ className = 'size-7' }) {
+export const PRODUCT_NAME = 'Layover';
+
+/** Akasa Air logo (drop the official file at public/brand/akasa-air-logo.svg) next to the name, with the product name beside it. */
+export function Brand({ className, compact = false }) {
   return (
-    <svg className={cn('text-brand', className)} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <rect x="2" y="2" width="28" height="28" rx="8" fill="currentColor" />
-      <rect x="8" y="9" width="16" height="15" rx="2.5" fill="none" stroke="hsl(var(--brand-foreground))" strokeWidth="1.8" />
-      <path d="M8 14h16M12.5 6.5v4M19.5 6.5v4" stroke="hsl(var(--brand-foreground))" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m12.5 19 2.5 2.5 4.5-5" fill="none" stroke="hsl(var(--brand-foreground))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span className={cn('inline-flex items-center gap-3', className)}>
+      <img src="/brand/akasa-air-logo.svg" alt="" width="32" height="32" className="size-8 shrink-0" />
+      <span className="flex items-baseline gap-2.5 leading-none">
+        <span className="text-[1.05rem] font-bold tracking-tight">Akasa Air</span>
+        {!compact && <span aria-hidden="true" className="h-4 w-px self-center bg-foreground/30" />}
+        {!compact && <span className="font-display text-[1.45rem] leading-none tracking-tight">{PRODUCT_NAME}</span>}
+      </span>
+    </span>
   );
 }
-
-export const Wordmark = ({ className }) => (
-  <span className={cn('inline-flex items-center gap-2.5 text-[1.05rem] font-semibold tracking-tight', className)}>
-    <BrandMark /> Leave Desk
-  </span>
-);
+export const Wordmark = Brand;
 
 const STATUS_STYLE = {
   PENDING_MANAGER: { icon: Clock, variant: 'amber' },
@@ -41,13 +41,22 @@ export const STATUS_EDGE = {
   REJECTED: 'border-l-status-red-fg',
   CANCELLED: 'border-l-status-grey-fg',
 };
+/** Solid fill in the status colour: for small bars and dots that sit beside a word. */
+export const STATUS_BAR = {
+  PENDING_MANAGER: 'bg-status-amber-fg',
+  PENDING_HOD: 'bg-status-blue-fg',
+  INFO_REQUESTED: 'bg-status-purple-fg',
+  APPROVED: 'bg-status-green-fg',
+  REJECTED: 'bg-status-red-fg',
+  CANCELLED: 'bg-status-grey-fg',
+};
 
-/** Status chip: colour + icon + text, never colour alone. */
+/** Status chip: a pill with colour, icon and word, never colour alone. */
 export function StatusChip({ status, className }) {
   const { icon: Icon, variant } = STATUS_STYLE[status];
   return (
-    <Badge variant={variant} data-status={status} className={cn('gap-1.5 rounded-full px-2.5 py-1 text-[0.8rem]', className)}>
-      <Icon className="size-3.5" aria-hidden="true" />
+    <Badge variant={variant} data-status={status} className={cn('gap-1.5 rounded-full px-2.5 py-1 text-[0.78rem] font-semibold', className)}>
+      <Icon className="size-3.5" aria-hidden="true" strokeWidth={2.4} />
       {STATUS_LABELS[status]}
     </Badge>
   );
@@ -63,20 +72,16 @@ export function Badges({ leave }) {
   );
 }
 
+/** A person's illustrated face (see Person in illustrations.jsx). Pass a size class such as "size-12". */
 export function Avatar({ name, className }) {
-  const initials = String(name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-  return (
-    <span aria-hidden="true" className={cn('inline-grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold text-foreground', className)}>
-      {initials}
-    </span>
-  );
+  return <Person name={name} className={className} />;
 }
 
 /** Shows a friendly API error with its hint. */
 export function ErrorBox({ error, className }) {
   if (!error) return null;
   return (
-    <div role="alert" className={cn('flex gap-3 rounded-lg border border-destructive/40 bg-status-red-bg p-4 text-status-red-fg', className)}>
+    <div role="alert" className={cn('flex gap-3 rounded-lg border border-status-red-fg/30 bg-status-red-bg p-4 text-status-red-fg', className)}>
       <CircleAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <div>
         <p className="font-semibold">{error.message}</p>
@@ -88,7 +93,7 @@ export function ErrorBox({ error, className }) {
 
 export function Notice({ children, className }) {
   return (
-    <div role="status" className={cn('flex gap-3 rounded-lg border border-status-amber-fg/40 bg-status-amber-bg p-4 text-status-amber-fg', className)}>
+    <div role="status" className={cn('flex gap-3 rounded-lg border border-status-amber-fg/30 bg-status-amber-bg p-4 text-status-amber-fg', className)}>
       <Clock className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <div className="text-sm font-medium">{children}</div>
     </div>
@@ -98,21 +103,21 @@ export function Notice({ children, className }) {
 /** Full-panel friendly screen for 403 / 404 / offline / unexpected errors. */
 export function ErrorScreen({ error }) {
   const map = {
-    403: [ShieldAlert, 'You do not have access to this page', 'Ask your manager if you think this is a mistake, or go back to your requests.'],
-    404: [SearchX, 'We could not find that', 'It may have been removed, or it may belong to someone else.'],
-    401: [ShieldAlert, 'Please sign in again', 'Your session has ended.'],
+    403: [ClosedGate, 'You do not have access to this page', 'If you think this is a mistake, ask your manager. Otherwise go back to your requests.'],
+    404: [LostTag, 'We could not find that', 'It may have been removed, or it may belong to someone else. Check the link, or go back to your requests.'],
+    401: [ClosedGate, 'Please sign in again', 'Your session has ended. Sign in again to carry on.'],
   };
-  const [Icon, title, hint] = error?.code === 'NETWORK'
-    ? [WifiOff, 'You seem to be offline', 'Check your internet connection and reload the page.']
-    : map[error?.status] ?? [CircleAlert, 'Something went wrong', error?.hint || 'Please try again in a moment.'];
+  const [Art, title, hint] = error?.code === 'NETWORK'
+    ? [Unplugged, 'You seem to be offline', 'Check your internet connection and reload the page.']
+    : map[error?.status] ?? [LostTag, 'Something went wrong', error?.hint || 'Please try again in a moment.'];
   return (
-    <Card role="alert" className="mx-auto mt-10 max-w-lg p-8 text-center">
-      <Icon className="mx-auto size-10 text-muted-foreground" aria-hidden="true" />
-      <h1 className="mt-4 text-2xl font-semibold tracking-tight">{title}</h1>
-      {error?.message && <p className="mt-2">{error.message}</p>}
+    <div role="alert" className="mx-auto mt-6 max-w-lg rounded-lg border bg-card px-6 py-12 text-center shadow-soft">
+      <Art className="mx-auto" />
+      <h1 className="font-display mt-6 text-3xl leading-tight sm:text-4xl">{title}</h1>
+      {error?.message && <p className="mt-3 font-medium">{error.message}</p>}
       <p className="mt-1 text-muted-foreground">{hint}</p>
-      <Button asChild variant="outline" className="mt-6"><Link to="/">Back to my requests</Link></Button>
-    </Card>
+      <Button asChild variant="outline" className="mt-7"><Link to="/">Back to my requests</Link></Button>
+    </div>
   );
 }
 
@@ -126,8 +131,8 @@ export class ErrorBoundary extends Component {
     if (!this.state.failed) return this.props.children;
     return (
       <main role="alert" className="mx-auto mt-24 max-w-md px-4 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Something went wrong</h1>
-        <p className="mt-2 text-muted-foreground">Please reload the page. Your submitted requests are safe.</p>
+        <h1 className="font-display text-2xl">Something went wrong</h1>
+        <p className="mt-2 text-muted-foreground">Reload the page to try again. Requests you have already sent are safe.</p>
         <Button className="mt-6" onClick={() => window.location.assign('/')}>Reload</Button>
       </main>
     );
@@ -137,7 +142,7 @@ export class ErrorBoundary extends Component {
 /** Colour key shown above request lists. */
 export function StatusLegend() {
   return (
-    <ul className="flex flex-wrap gap-2" aria-label="Status colour key">
+    <ul className="flex flex-wrap gap-2" aria-label="Status key">
       {STATUSES.map((s) => <li key={s}><StatusChip status={s} /></li>)}
     </ul>
   );
@@ -145,24 +150,47 @@ export function StatusLegend() {
 
 export const FieldError = ({ msg, id }) => (msg ? <p id={id} className="mt-1.5 text-sm font-medium text-destructive">{msg}</p> : null);
 
-export function PageHeader({ title, description, children }) {
+export function PageHeader({ title, description, kicker, children }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-4xl leading-none tracking-tight sm:text-5xl">{title}</h1>
-        {description && <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p>}
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+      <div className="min-w-0">
+        {kicker && <p className="kicker mb-2.5">{kicker}</p>}
+        <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">{title}</h1>
+        {description && <p className="mt-2.5 max-w-2xl text-muted-foreground">{description}</p>}
       </div>
       {children}
     </div>
   );
 }
 
+/** A white card with a heading: the building block of the request page, forms and side panels. */
+export function Panel({ title, kicker, children, className, as: As = 'section' }) {
+  return (
+    <As className={cn('rounded-lg border bg-card p-5 shadow-soft sm:p-6', className)}>
+      {kicker && <p className="kicker mb-1.5">{kicker}</p>}
+      {title && <h2 className="font-display mb-4 text-xl leading-tight">{title}</h2>}
+      {children}
+    </As>
+  );
+}
+
+/** "5 days" plus, when something was left out of the count, why. */
+export function DaysLabel({ leave, className }) {
+  const note = leave.excluded ? excludedSummary(leave.excluded) : '';
+  return (
+    <span className={className}>
+      <span className="num">{leave.days} day{leave.days === 1 ? '' : 's'}</span>
+      {note && <span className="text-muted-foreground"> · {note}</span>}
+    </span>
+  );
+}
+
 export function Pager({ page, pages, setPage }) {
   if (pages <= 1) return null;
   return (
-    <nav aria-label="Pages" className="mt-6 flex items-center justify-center gap-4">
+    <nav aria-label="Pages" className="mt-6 flex items-center justify-between gap-4">
       <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-      <span className="text-sm text-muted-foreground">Page {page} of {pages}</span>
+      <span className="font-mono text-xs text-muted-foreground">Page {page} of {pages}</span>
       <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</Button>
     </nav>
   );

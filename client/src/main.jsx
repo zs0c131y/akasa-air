@@ -1,9 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import '@fontsource-variable/geist';
-import '@fontsource/instrument-serif';
-import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import App from './App.jsx';
 import { AuthProvider } from './auth.jsx';
 import { ThemeProvider } from './theme.jsx';

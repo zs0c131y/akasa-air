@@ -36,7 +36,7 @@ function statePermits(s, action, today) {
     case 'CANCEL':
       return OPEN.includes(s.status) || (s.status === 'APPROVED' && s.fromDate > today);
     case 'ATTACH':
-      return OPEN.includes(s.status) || s.status === 'APPROVED';
+      return s.isLong && (OPEN.includes(s.status) || s.status === 'APPROVED'); // documents only for long leave
     case 'EDIT':
       return OPEN.includes(s.status) && !s.hasApproval;
     default:

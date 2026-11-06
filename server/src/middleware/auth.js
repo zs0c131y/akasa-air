@@ -101,6 +101,7 @@ export async function requireAuth(req, _res, next) {
     email: user.email,
     role: user.role,
     managerId: user.managerId ? String(user.managerId) : null,
+    location: user.location ?? null,
   };
   next();
 }

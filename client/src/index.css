@@ -4,49 +4,65 @@
 
 @layer base {
   :root {
-    --background: 40 30% 97%; --foreground: 30 14% 10%;
-    --card: 0 0% 100%; --card-foreground: 30 14% 10%; --popover: 0 0% 100%; --popover-foreground: 30 14% 10%;
-    --primary: 30 14% 10%; --primary-foreground: 40 30% 97%;
-    --secondary: 38 20% 94%; --secondary-foreground: 30 14% 10%;
-    --muted: 38 18% 93%; --muted-foreground: 30 8% 36%; --accent: 38 22% 91%; --accent-foreground: 30 14% 10%;
-    --destructive: 0 70% 38%; --destructive-foreground: 0 0% 100%;
-    --border: 36 14% 86%; --input: 30 8% 52%; --ring: 178 70% 24%;
-    --brand: 178 75% 22%; --brand-foreground: 0 0% 100%;
-    --amber: 32 100% 24%; --amber-soft: 44 95% 89%; --blue: 212 88% 30%; --blue-soft: 211 80% 92%;
-    --purple: 262 45% 38%; --purple-soft: 262 70% 93%; --green: 142 70% 22%; --green-soft: 140 55% 90%;
-    --red: 0 70% 36%; --red-soft: 0 80% 93%; --grey: 30 5% 30%; --grey-soft: 30 8% 90%;
-    --shadow: 30 20% 10%; --radius: 0.75rem;
+    /* Off-white paper, near-black ink, one accent: Akasa orange. Orange is a fill (with dark text on it) or, darker, text. */
+    --background: 55 18% 95%; --foreground: 40 12% 8%; --paper: 0 0% 100%;
+    --card: 0 0% 100%; --card-foreground: 40 12% 8%; --popover: 0 0% 100%; --popover-foreground: 40 12% 8%;
+    --primary: 40 12% 8%; --primary-foreground: 55 18% 96%;
+    --secondary: 55 14% 91%; --secondary-foreground: 40 12% 8%;
+    --muted: 55 14% 91%; --muted-foreground: 40 6% 35%; --accent: 55 14% 89%; --accent-foreground: 40 12% 8%;
+    --destructive: 2 72% 38%; --destructive-foreground: 0 0% 100%;
+    --border: 50 12% 86%; --rule: 50 8% 76%; --input: 40 6% 50%; --ring: 17 100% 38%;
+    --brand: 17 100% 36%; --brand-foreground: 0 0% 100%;
+    --flame: 21 100% 55%; --flame-foreground: 40 12% 8%;
+    --amber: 36 100% 24%; --amber-soft: 44 90% 86%; --blue: 212 88% 30%; --blue-soft: 211 70% 90%;
+    --purple: 262 45% 38%; --purple-soft: 262 50% 92%; --green: 142 70% 21%; --green-soft: 140 45% 88%;
+    --red: 2 72% 36%; --red-soft: 2 70% 92%; --grey: 40 5% 30%; --grey-soft: 50 8% 87%;
+    --shadow: 40 30% 10%; --radius: 0.75rem;
   }
   .dark {
-    --background: 30 10% 7%; --foreground: 40 25% 93%;
-    --card: 30 8% 10%; --card-foreground: 40 25% 93%; --popover: 30 8% 11%; --popover-foreground: 40 25% 93%;
-    --primary: 40 25% 93%; --primary-foreground: 30 10% 8%;
-    --secondary: 30 6% 15%; --secondary-foreground: 40 25% 93%;
-    --muted: 30 6% 14%; --muted-foreground: 35 10% 68%; --accent: 30 6% 17%; --accent-foreground: 40 25% 93%;
-    --destructive: 0 75% 62%; --destructive-foreground: 30 10% 8%;
-    --border: 30 6% 19%; --input: 30 6% 46%; --ring: 175 60% 58%;
-    --brand: 175 55% 58%; --brand-foreground: 30 10% 8%;
+    --background: 30 8% 6%; --foreground: 50 15% 94%; --paper: 30 6% 10%;
+    --card: 30 6% 10%; --card-foreground: 50 15% 94%; --popover: 30 6% 11%; --popover-foreground: 50 15% 94%;
+    --primary: 50 15% 94%; --primary-foreground: 30 8% 7%;
+    --secondary: 30 5% 15%; --secondary-foreground: 50 15% 94%;
+    --muted: 30 5% 14%; --muted-foreground: 40 8% 68%; --accent: 30 5% 18%; --accent-foreground: 50 15% 94%;
+    --destructive: 2 80% 66%; --destructive-foreground: 30 8% 7%;
+    --border: 30 5% 18%; --rule: 30 5% 26%; --input: 30 5% 46%; --ring: 21 100% 62%;
+    --brand: 21 100% 62%; --brand-foreground: 40 12% 8%;
+    --flame: 21 100% 55%; --flame-foreground: 40 12% 8%;
     --amber: 42 92% 68%; --amber-soft: 36 55% 14%; --blue: 211 90% 74%; --blue-soft: 213 55% 16%;
     --purple: 262 85% 80%; --purple-soft: 262 35% 19%; --green: 142 55% 62%; --green-soft: 142 40% 14%;
-    --red: 0 85% 72%; --red-soft: 0 45% 17%; --grey: 30 8% 76%; --grey-soft: 30 5% 20%;
+    --red: 2 85% 72%; --red-soft: 2 45% 17%; --grey: 40 8% 76%; --grey-soft: 30 5% 20%;
     --shadow: 0 0% 0%;
   }
   * { @apply border-border; }
   html { font-size: 106.25%; scroll-padding-top: 5rem; -webkit-text-size-adjust: 100%; }
   html[data-text='lg'] { font-size: 118%; }
   html[data-text='xl'] { font-size: 131%; }
-  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-  body { @apply bg-background text-foreground font-sans antialiased; font-feature-settings: 'ss01', 'cv11'; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
   :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
-  ::selection { background: hsl(var(--brand) / .25); }
+  ::selection { background: hsl(var(--flame) / .45); }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  /* Headings: tight, bold grotesk. */
+  .font-display { font-weight: 700; letter-spacing: -0.035em; }
+  .title { @apply font-display text-4xl leading-[1.05] sm:text-5xl; }
+  /* Small mono label. */
+  .kicker { @apply font-mono text-[0.72rem] font-medium uppercase tracking-[0.14em] text-muted-foreground; }
+  /* Faint square grid, used behind the dark hero. */
+  .gridlines {
+    background-image: linear-gradient(hsl(var(--foreground) / .045) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / .045) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
 }
 
 @layer utilities {
   .skip-link { @apply absolute left-3 top-3 z-[100] -translate-y-24 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:translate-y-0; }
-  .grain { background-image: radial-gradient(hsl(var(--foreground) / .06) 1px, transparent 1px); background-size: 22px 22px; }
 }
 
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 @media print { header, .no-print { display: none !important; } body { background: #fff; color: #000; } }
 @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }

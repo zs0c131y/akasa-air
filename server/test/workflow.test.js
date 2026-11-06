@@ -96,7 +96,8 @@ describe('who may act (403)', () => {
 describe('allowedActions', () => {
   it('lists exactly what each actor can do', () => {
     expect(allowedActions(base, mgr, TODAY).sort()).toEqual(['APPROVE', 'REJECT', 'REQUEST_INFO']);
-    expect(allowedActions(base, emp, TODAY).sort()).toEqual(["ATTACH", "CANCEL", "EDIT"]);
+    expect(allowedActions(base, emp, TODAY).sort()).toEqual(['CANCEL', 'EDIT']); // short leave: no document upload
+    expect(allowedActions({ ...base, isLong: true }, emp, TODAY).sort()).toEqual(['ATTACH', 'CANCEL', 'EDIT']);
     expect(allowedActions(base, otherMgr, TODAY)).toEqual([]);
     expect(ACTIONS.length).toBe(7);
   });

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, FilePlus2, Inbox } from 'lucide-react';
-import { STATUSES } from '@lms/shared';
+import { ArrowRight, FilePlus2 } from 'lucide-react';
+import { STATUSES, STATUS_LABELS } from '@lms/shared';
 import { api } from '../api.js';
-import { Avatar, Badges, ErrorBox, PageHeader, Pager, STATUS_EDGE, StatusChip, fmtDate } from '../components.jsx';
+import { Avatar, Badges, DaysLabel, ErrorBox, PageHeader, Pager, STATUS_BAR, StatusChip, fmtDate } from '../components.jsx';
+import { EmptyTray } from '../illustrations.jsx';
 import { Button } from '../ui/button.jsx';
 import { Skeleton } from '../ui/skeleton.jsx';
 import { cn } from '../lib/utils.js';
 
-export default function ListPage({ scope, title, description }) {
+export default function ListPage({ scope, title, description, kicker }) {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
@@ -21,20 +22,31 @@ export default function ListPage({ scope, title, description }) {
 
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
   const pick = (s) => { setStatus(s); setPage(1); };
+  const emptyTitle = scope === 'queue' ? 'Nothing is waiting for you' : status ? 'No requests with that status' : 'No requests yet';
+  const emptyHint = scope === 'queue'
+    ? 'When someone files a request for you to decide, it will show up here.'
+    : status ? 'Pick All to see every request again.' : scope === 'mine' ? 'Start a new request and it will appear here.' : 'Requests you can see will appear here.';
   return (
     <section>
-      <PageHeader title={title} description={description}>
+      <PageHeader title={title} description={description} kicker={kicker}>
         {scope === 'mine' && <Button asChild variant="brand"><Link to="/apply"><FilePlus2 />New request</Link></Button>}
       </PageHeader>
 
       {scope !== 'queue' && (
-        <div role="group" aria-label="Filter by status" className="mb-5 flex flex-wrap items-center gap-2">
-          <button type="button" aria-pressed={status === ''} onClick={() => pick('')} className={cn('h-9 rounded-full border px-3.5 text-sm font-medium transition-colors', status === '' ? 'border-foreground bg-foreground text-background' : 'bg-card hover:bg-accent')}>
-            All
-          </button>
-          {STATUSES.map((s) => (
-            <button key={s} type="button" aria-pressed={status === s} onClick={() => pick(s)} className={cn('rounded-full transition-opacity focus-visible:outline-none', status && status !== s && 'opacity-50 hover:opacity-100', status === s && 'ring-2 ring-foreground ring-offset-2 ring-offset-background')}>
-              <StatusChip status={s} className="h-9 px-3" />
+        <div role="group" aria-label="Filter by status" className="mb-6 flex flex-wrap items-center gap-2">
+          {['', ...STATUSES].map((s) => (
+            <button
+              key={s || 'all'}
+              type="button"
+              aria-pressed={status === s}
+              onClick={() => pick(s)}
+              className={cn(
+                'inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors',
+                status === s ? 'border-foreground bg-foreground text-background' : 'bg-card hover:bg-accent',
+              )}
+            >
+              {s && <span aria-hidden="true" className={cn('size-2 rounded-full', STATUS_BAR[s])} />}
+              {s ? STATUS_LABELS[s] : 'All'}
             </button>
           ))}
         </div>
@@ -43,14 +55,14 @@ export default function ListPage({ scope, title, description }) {
       <ErrorBox error={error} className="mb-4" />
       {!data && !error && (
         <div className="space-y-3" role="status" aria-label="Loading requests">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
         </div>
       )}
       {data && data.items.length === 0 && (
-        <div className="grid place-items-center rounded-xl border border-dashed py-16 text-center">
-          <Inbox className="size-8 text-muted-foreground" aria-hidden="true" />
-          <p className="mt-3 font-medium">{scope === 'queue' ? 'Nothing is waiting for you' : 'No requests here yet'}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{scope === 'queue' ? 'New requests will appear here as soon as they are submitted.' : 'Try another filter, or start a new request.'}</p>
+        <div className="grid place-items-center rounded-lg border border-dashed bg-card/50 px-6 py-14 text-center">
+          <EmptyTray />
+          <p className="font-display mt-5 text-xl">{emptyTitle}</p>
+          <p className="mt-1.5 max-w-sm text-muted-foreground">{emptyHint}</p>
         </div>
       )}
       <ul className="space-y-3">
@@ -58,22 +70,27 @@ export default function ListPage({ scope, title, description }) {
           <li key={l.id}>
             <Link
               to={`/leaves/${l.id}`}
-              className={cn('group flex items-start gap-4 rounded-lg border border-l-4 bg-card p-4 shadow-soft transition-all hover:-translate-y-px hover:shadow-lift sm:p-5', STATUS_EDGE[l.status])}
+              className="group relative flex items-start gap-4 overflow-hidden rounded-lg border bg-card py-4 pl-5 pr-4 shadow-soft transition-colors hover:border-foreground/40 sm:items-center sm:gap-5 sm:py-5"
             >
-              <Avatar name={l.employeeName} className="hidden sm:inline-grid" />
+              <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', STATUS_BAR[l.status])} />
+              <Avatar name={l.employeeName} className="size-11 sm:size-12" />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold">{l.employeeName}</p>
-                  <StatusChip status={l.status} />
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  <p className="text-base font-semibold">{l.employeeName}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {fmtDate(l.fromDate)} to {fmtDate(l.toDate)}
+                  </p>
                 </div>
-                <p className="mt-1 text-sm">
-                  {fmtDate(l.fromDate)} <span aria-hidden="true">→</span><span className="sr-only">to</span> {fmtDate(l.toDate)}
-                  <span className="text-muted-foreground"> · {l.days} day{l.days > 1 ? 's' : ''}</span>
-                </p>
-                <p className="mt-1 truncate text-sm text-muted-foreground">{l.reason}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5 empty:hidden"><Badges leave={l} /></div>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">{l.reason}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  <DaysLabel leave={l} className="text-sm" />
+                  <Badges leave={l} />
+                </div>
               </div>
-              <ArrowRight className="mt-1 hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block" aria-hidden="true" />
+              <div className="flex shrink-0 flex-col items-end gap-3 sm:flex-row sm:items-center">
+                <StatusChip status={l.status} />
+                <ArrowRight className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground sm:block" aria-hidden="true" />
+              </div>
             </Link>
           </li>
         ))}

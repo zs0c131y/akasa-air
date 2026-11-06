@@ -15,7 +15,7 @@ const write = (key, value) => {
 const systemDark = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(() => read('lms-theme', 'system'));
+  const [theme, setThemeState] = useState(() => read('lms-theme', 'light'));
   const [textSize, setTextSizeState] = useState(() => read('lms-text', 'md'));
   const [prefersDark, setPrefersDark] = useState(systemDark);
 

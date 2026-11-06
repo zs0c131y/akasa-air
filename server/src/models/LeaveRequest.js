@@ -33,6 +33,9 @@ const leaveSchema = new mongoose.Schema(
     fromDate: { type: String, required: true },
     toDate: { type: String, required: true },
     days: { type: Number, required: true },
+    /** What was left out of the count (Sundays and public holidays), recorded when the request was made. */
+    excludedSundays: { type: Number, default: 0 },
+    excludedHolidays: { type: [new mongoose.Schema({ date: String, name: String }, { _id: false })], default: [] },
     isLong: { type: Boolean, required: true },
     reason: { type: String, required: true },
     /** Emergency leave over the threshold may be filed without documents (owed afterwards). */

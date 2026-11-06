@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
     failedLogins: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },
     department: { type: String, default: 'Operations' },
+    /** Work location (a Location name). Decides which local holidays apply to this person. Null = national holidays only. */
+    location: { type: String, default: null },
   },
   { timestamps: true },
 );

@@ -1,4 +1,4 @@
-# Leave Desk — Employee Leave Management System
+# Layover — Employee Leave Management System
 
 A small MERN portal where employees request leave and managers/HODs approve, reject or ask for more information. Leave longer than 3 consecutive days needs documents and two approvals (Manager, then HOD), unless it is filed as emergency leave.
 
@@ -21,7 +21,7 @@ docker compose up --build
 Open http://localhost:4000. (Starts MongoDB as a single-node replica set, the app, and seeds demo data.)
 
 ### Development
-`npm run dev` runs the API (port 4000) and Vite (port 5173, proxies `/api`).
+`npm run dev` runs the API (port 4000, restarts by itself when server or shared code changes) and Vite (port 5173, proxies `/api`, hot-reloads the page as you edit client code). **While developing, open http://localhost:5173**, not 4000: port 4000 serves the last production build (`npm run build`) and does not hot-reload.
 
 ### Tests
 `npm test` (unit tests for the day-count/validation rules and the workflow state machine, plus API integration tests).
@@ -45,7 +45,7 @@ Seed data has requests in every status, including long leaves waiting at the man
 **HOD:** second-level queue (sees the manager's comment), all requests.
 
 ## Rules and assumptions
-- **Consecutive days** = inclusive calendar days from start to end, **not counting Sundays** (Mon 2 Nov to Fri 6 Nov = 5; Fri 6 Nov to Tue 10 Nov = 4). Threshold is `LONG_LEAVE_THRESHOLD_DAYS = 3` in `shared/src/index.js`; exactly 3 days is *not* long.
+- **Consecutive days** = inclusive calendar days from start to end, **not counting Sundays** (Mon 2 Nov to Fri 6 Nov = 5; Fri 6 Nov to Tue 10 Nov = 4). **Public holidays are not counted either**; the HOD keeps the holiday calendar in the app (`/holidays`). Documents are only accepted for leave over 3 days. Threshold is `LONG_LEAVE_THRESHOLD_DAYS = 3` in `shared/src/index.js`; exactly 3 days is *not* long.
 - **More than 3 days:** documents are required (blocked in UI and API) and approval goes Manager → HOD; either can reject, which ends the request. 3 days or fewer: Manager only.
 - **Emergency leave** (checkbox): may exceed 3 days without documents, still needs both approvals. Documents are due before the employee returns to work (end date + 1 day) or before their next leave. While one emergency leave is missing documents, only one more *emergency* leave is allowed; normal leave is blocked. With two missing, all new leave is blocked until documents are uploaded.
 - A manager's own leave goes straight to the HOD; HOD leave is auto-approved and marked on the timeline.

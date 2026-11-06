@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Akasa Air">
+  <!-- PLACEHOLDER mark. Replace this file with the official Akasa Air logo (same path and name, SVG or PNG via the Brand component). -->
+  <rect width="40" height="40" rx="9" fill="#FF6A1A"/>
+  <path d="M9 28 20 9l11 19h-5.2L20 18.4 14.2 28H9Z" fill="#1A1410"/>
+</svg>

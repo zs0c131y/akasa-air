@@ -2,6 +2,7 @@ import { config } from './config.js';
 import { connectDb, disconnectDb } from './db.js';
 import { createApp } from './app.js';
 import { seedIfEmpty, DEMO_USERS } from './seed.js';
+import { migrateHolidayIndexes, seedHolidaysIfEmpty, seedLocationsIfEmpty } from './services/holidayService.js';
 
 if (!process.env.JWT_SECRET) {
   if (config.isProd) {
@@ -13,6 +14,9 @@ if (!process.env.JWT_SECRET) {
 
 await connectDb();
 if (config.seedOnStart && (await seedIfEmpty())) console.log('[seed] Demo data created.');
+await migrateHolidayIndexes();
+if (await seedLocationsIfEmpty()) console.log('[seed] Locations created.');
+if (await seedHolidaysIfEmpty()) console.log('[seed] Holiday calendar created.');
 
 const server = createApp().listen(config.port, () => {
   const url = `http://localhost:${config.port}`;

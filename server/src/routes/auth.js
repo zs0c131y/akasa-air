@@ -17,7 +17,7 @@ const makeLoginLimiter = () =>
     next(new AppError(429, 'TOO_MANY_REQUESTS', 'Too many sign-in attempts from this device.', 'Please wait a few minutes and try again.')),
   });
 
-const publicUser = (u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role });
+const publicUser = (u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, location: u.location ?? null });
 const asActor = (u) => ({ id: String(u._id), name: u.name, role: u.role });
 
 /** Builds the auth router (its sign-in rate limiter is per app instance). */

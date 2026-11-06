@@ -10,6 +10,8 @@ import { AppError } from './errors.js';
 import { createAuthRouter } from './routes/auth.js';
 import { leavesRouter } from './routes/leaves.js';
 import { auditRouter } from './routes/audit.js';
+import { holidaysRouter, locationsRouter, peopleRouter } from './routes/holidays.js';
+import { statsRouter } from './routes/stats.js';
 import { audit } from './services/auditService.js';
 import { securityHeaders, corsAllowlist, apiLimiter, rejectOperatorKeys, requestLogger } from './middleware/security.js';
 
@@ -29,6 +31,10 @@ export function createApp() {
   app.use('/api/auth', createAuthRouter());
   app.use('/api/leaves', leavesRouter);
   app.use('/api/audit', auditRouter);
+  app.use('/api/holidays', holidaysRouter);
+  app.use('/api/locations', locationsRouter);
+  app.use('/api/people', peopleRouter);
+  app.use('/api/stats', statsRouter);
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'That page of the API does not exist.')));
 
   const dist = config.clientDist;

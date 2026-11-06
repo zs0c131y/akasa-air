@@ -5,3 +5,4 @@ data
 *.log
 server.log
 server.err.log
+dev.log

@@ -28,6 +28,10 @@ function parse(schema, body) {
   return r.data;
 }
 
+leavesRouter.get('/calendar', async (req, res) => {
+  res.json(await svc.calendar(req.user, { from: String(req.query.from ?? ''), to: String(req.query.to ?? '') }));
+});
+
 leavesRouter.get('/obligations', async (req, res) => {
   res.json(await svc.getObligations(req.user));
 });

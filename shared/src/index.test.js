@@ -7,6 +7,10 @@ import {
   leaveInputSchema,
   todayISO,
   parseISODate,
+  leaveBreakdown,
+  excludedSummary,
+  documentsAccepted,
+  makeLeaveInputSchema,
 } from './index.js';
 
 const plus = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
@@ -37,7 +41,7 @@ describe('schema: Sunday-only request', () => {
     const d = (() => { let t = parseISODate(todayISO()) + 86400000; while (new Date(t).getUTCDay() !== 0) t += 86400000; return new Date(t).toISOString().slice(0, 10); })();
     const r = leaveInputSchema.safeParse({ fromDate: d, toDate: d, reason: 'Resting day' });
     expect(r.success).toBe(false);
-    expect(r.error.issues[0].message).toMatch(/Sundays are not counted/);
+    expect(r.error.issues[0].message).toMatch(/Sundays and public holidays are not counted/);
   });
 });
 
@@ -76,5 +80,30 @@ describe('leaveInputSchema', () => {
     expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(-1), toDate: plus(2) }).success).toBe(false);
     expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(0), toDate: plus(2) }).success).toBe(true);
     expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(400), toDate: plus(401) }).success).toBe(false);
+  });
+});
+
+describe('public holidays are not counted', () => {
+  const hol = [{ date: '2026-11-04', name: 'Diwali' }];
+  it('skips a holiday inside the range', () => expect(countLeaveDays('2026-11-02', '2026-11-06', hol)).toBe(4));
+  it('accepts plain date strings too', () => expect(countLeaveDays('2026-11-02', '2026-11-06', ['2026-11-04'])).toBe(4));
+  it('skips Sundays and holidays together', () => expect(countLeaveDays('2026-11-02', '2026-11-09', hol)).toBe(6));
+  it('reports what was left out', () => {
+    const b = leaveBreakdown('2026-11-02', '2026-11-09', hol);
+    expect(b).toMatchObject({ days: 6, calendarDays: 8, sundays: 1, holidays: [{ date: '2026-11-04', name: 'Diwali' }] });
+    expect(excludedSummary(b)).toBe('1 Sunday and Diwali are not counted');
+  });
+  it('a holiday on a Sunday is only a Sunday', () => {
+    const b = leaveBreakdown('2026-11-08', '2026-11-09', [{ date: '2026-11-08', name: 'Diwali' }]);
+    expect(b).toMatchObject({ days: 1, sundays: 1, holidays: [] });
+  });
+  it('a request made only of holidays and Sundays is refused', () => {
+    const schema = makeLeaveInputSchema([{ date: plus(1), name: 'Founders Day' }]);
+    const r = schema.safeParse({ fromDate: plus(1), toDate: plus(1), reason: 'Long weekend' });
+    expect(r.success).toBe(false);
+  });
+  it('documents are only for leave over 3 days', () => {
+    expect(documentsAccepted(3)).toBe(false);
+    expect(documentsAccepted(4)).toBe(true);
   });
 });

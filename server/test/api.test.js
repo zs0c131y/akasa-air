@@ -5,7 +5,7 @@ import path from 'node:path';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { todayISO, parseISODate, countLeaveDays } from '@lms/shared';
+import { todayISO, parseISODate, countLeaveDays, leaveBreakdown } from '@lms/shared';
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-test-'));
 const { createApp } = await import('../src/app.js');
@@ -238,5 +238,249 @@ describe('audit log', () => {
     const one = await AuditLog.findOne();
     one.detail = 'tampered';
     await expect(one.save()).rejects.toThrow(/append-only/);
+  });
+});
+
+describe('public holidays and documents on short leave', () => {
+  const hol = day(345);
+  const range = [day(344), day(346)]; // holiday sits in the middle
+
+  it('only the HOD can add a holiday; everyone can read the calendar', async () => {
+    const denied = await request(app).post('/api/holidays').set(as('rahul')).send({ date: hol, name: 'Founders Day' });
+    expect(denied.status).toBe(403);
+    const ok = await request(app).post('/api/holidays').set(as('hod')).send({ date: hol, name: 'Founders Day' });
+    expect(ok.status).toBe(201);
+    const dup = await request(app).post('/api/holidays').set(as('hod')).send({ date: hol, name: 'Again' });
+    expect(dup.status).toBe(409);
+    const list = await request(app).get('/api/holidays').set(as('arjun'));
+    expect(list.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ date: hol, name: 'Founders Day' })]));
+  });
+
+  it('a holiday inside the range is not counted, and the request says so', async () => {
+    const r = await submit('arjun', { fromDate: range[0], toDate: range[1], reason: 'Short break' });
+    expect(r.status).toBe(201);
+    const b = leaveBreakdown(range[0], range[1], [hol]);
+    expect(r.body.days).toBe(b.days);
+    expect(r.body.excluded.holidays).toEqual([{ date: hol, name: 'Founders Day' }]);
+  });
+
+  it('refuses a request that only covers a holiday', async () => {
+    const r = await submit('sneha', { fromDate: hol, toDate: hol, reason: 'Day off' });
+    expect(r.status).toBe(400);
+    expect(r.body.error.fields.toDate).toMatch(/not counted as leave/);
+  });
+
+  it('short leave does not accept documents', async () => {
+    const r = await submit('arjun', { fromDate: day(360), toDate: day(361), reason: 'Quick errand' }, [{}]);
+    expect(r.status).toBe(400);
+    expect(r.body.error.fields.documents).toMatch(/longer than 3 days/);
+    const ok = await submit('arjun', { fromDate: day(360), toDate: day(361), reason: 'Quick errand' });
+    expect(ok.status).toBe(201);
+    const attach = await request(app).post(`/api/leaves/${ok.body.id}/documents`).set(as('arjun')).attach('documents', PDF, 'x.pdf');
+    expect([400, 403, 409]).toContain(attach.status);
+    expect(ok.body.allowedActions).not.toContain('ATTACH');
+  });
+
+  it('the HOD can remove a holiday', async () => {
+    const list = await request(app).get('/api/holidays').set(as('hod'));
+    const id = list.body.items.find((h) => h.date === hol).id;
+    expect((await request(app).delete(`/api/holidays/${id}`).set(as('rahul'))).status).toBe(403);
+    expect((await request(app).delete(`/api/holidays/${id}`).set(as('hod'))).status).toBe(200);
+  });
+});
+
+describe('location calendars and bulk import', () => {
+  const d = day(353); // Arjun (Bengaluru) and Ananya (Mumbai) both span this date
+  const span = [day(352), day(354)];
+  let people;
+
+  it('only the HOD manages locations and sees who works where', async () => {
+    expect((await request(app).post('/api/locations').set(as('rahul')).send({ name: 'Pune' })).status).toBe(403);
+    expect((await request(app).post('/api/locations').set(as('hod')).send({ name: 'Bengaluru' })).status).toBe(201);
+    expect((await request(app).post('/api/locations').set(as('hod')).send({ name: 'Mumbai' })).status).toBe(201);
+    expect((await request(app).post('/api/locations').set(as('hod')).send({ name: 'Bengaluru' })).status).toBe(409);
+    expect((await request(app).post('/api/locations').set(as('hod')).send({ name: 'National' })).status).toBe(400);
+    expect((await request(app).get('/api/people').set(as('arjun'))).status).toBe(403);
+    const r = await request(app).get('/api/people').set(as('hod'));
+    people = Object.fromEntries(r.body.items.map((p) => [p.name, p]));
+    expect(people['Arjun Sharma'].location).toBe('Bengaluru');
+    expect(people['Ananya Iyer'].location).toBe('Mumbai');
+  });
+
+  it('a local holiday is only taken off for people at that location', async () => {
+    const add = await request(app).post('/api/holidays').set(as('hod')).send({ date: d, name: 'Local Day', location: 'Bengaluru' });
+    expect(add.status).toBe(201);
+    expect(add.body.location).toBe('Bengaluru');
+    const bad = await request(app).post('/api/holidays').set(as('hod')).send({ date: d, name: 'Somewhere', location: 'Atlantis' });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.fields.location).toMatch(/Atlantis/);
+
+    const mine = await request(app).get('/api/holidays').set(as('arjun'));
+    expect(mine.body.items.some((h) => h.name === 'Local Day')).toBe(true);
+    const theirs = await request(app).get('/api/holidays').set(as('ananya'));
+    expect(theirs.body.items.some((h) => h.name === 'Local Day')).toBe(false);
+
+    const arjun = await submit('arjun', { fromDate: span[0], toDate: span[1], reason: 'Local break' });
+    const ananya = await submit('ananya', { fromDate: span[0], toDate: span[1], reason: 'Local break' });
+    expect(arjun.status).toBe(201);
+    expect(ananya.status).toBe(201);
+    expect(arjun.body.excluded.holidays).toEqual([{ date: d, name: 'Local Day' }]);
+    expect(ananya.body.excluded.holidays).toEqual([]);
+    expect(arjun.body.days).toBe(ananya.body.days - 1);
+  });
+
+  it('the HOD can see every location or one at a time', async () => {
+    const all = await request(app).get('/api/holidays?all=true').set(as('hod'));
+    expect(all.body.items.some((h) => h.name === 'Local Day')).toBe(true);
+    const mumbaiView = await request(app).get('/api/holidays?location=Mumbai').set(as('hod'));
+    expect(mumbaiView.body.items.some((h) => h.name === 'Local Day')).toBe(false);
+  });
+
+  it('moving someone to another location changes which calendar they get', async () => {
+    const url = `/api/people/${people['Sneha Kulkarni'].id}/location`;
+    expect((await request(app).patch(url).set(as('rahul')).send({ location: 'Bengaluru' })).status).toBe(403);
+    const ok = await request(app).patch(url).set(as('hod')).send({ location: 'Bengaluru' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.location).toBe('Bengaluru');
+    const mine = await request(app).get('/api/holidays').set(as('sneha'));
+    expect(mine.body.items.some((h) => h.name === 'Local Day')).toBe(true);
+    expect((await request(app).patch(url).set(as('hod')).send({ location: 'Atlantis' })).status).toBe(400);
+  });
+
+  it('a location that still has people or holidays cannot be removed', async () => {
+    const list = await request(app).get('/api/locations').set(as('hod'));
+    const blr = list.body.items.find((l) => l.name === 'Bengaluru');
+    expect(blr.people).toBeGreaterThan(0);
+    const r = await request(app).delete(`/api/locations/${blr.id}`).set(as('hod'));
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe('LOCATION_IN_USE');
+  });
+
+  describe('bulk import', () => {
+    const csv = `Date,Holiday,Location\n${day(400)},Import One,\n${day(401)},Import Two,Mumbai\n`;
+
+    it('is HOD only', async () => {
+      expect((await request(app).post('/api/holidays/import').set(as('rahul')).send({ csv })).status).toBe(403);
+    });
+    it('previews without saving', async () => {
+      const r = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv });
+      expect(r.status).toBe(200);
+      expect(r.body).toMatchObject({ applied: false, summary: { new: 2, duplicate: 0, errors: 0 } });
+      const list = await request(app).get('/api/holidays?all=true').set(as('hod'));
+      expect(list.body.items.some((h) => h.name === 'Import One')).toBe(false);
+    });
+    it('saves nothing if any line has an error, and says which line', async () => {
+      const bad = `${csv}not-a-date,Broken,\n${day(402)},Elsewhere,Atlantis\n`;
+      const r = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv: bad, apply: true });
+      expect(r.body.applied).toBe(false);
+      expect(r.body.summary.errors).toBe(2);
+      expect(r.body.rows.filter((x) => x.status === 'error').map((x) => x.line)).toEqual([4, 5]);
+      const list = await request(app).get('/api/holidays?all=true').set(as('hod'));
+      expect(list.body.items.some((h) => h.name === 'Import One')).toBe(false);
+    });
+    it('applies a clean file, reads day-first dates, and skips duplicates on a second run', async () => {
+      const r = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv, apply: true });
+      expect(r.body).toMatchObject({ applied: true, summary: { new: 2 } });
+      const again = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv, apply: true });
+      expect(again.body).toMatchObject({ applied: false, summary: { new: 0, duplicate: 2, errors: 0 } });
+      const [y, m, dd] = day(410).split('-');
+      const dmy = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv: `${dd}/${m}/${y};Semicolon Day;National`, apply: true });
+      expect(dmy.body.applied).toBe(true);
+      const list = await request(app).get('/api/holidays?all=true').set(as('hod'));
+      expect(list.body.items).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'Import One', location: null }),
+        expect.objectContaining({ name: 'Import Two', location: 'Mumbai' }),
+        expect.objectContaining({ name: 'Semicolon Day', date: day(410), location: null }),
+      ]));
+    });
+    it('asks for something to import', async () => {
+      const r = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv: '   ' });
+      expect(r.status).toBe(400);
+      expect(r.body.error.fields.csv).toBeTruthy();
+    });
+  });
+});
+
+describe('team calendar', () => {
+  const q = `from=${day(350)}&to=${day(356)}`;
+  const names = (r) => r.body.items.map((i) => i.employeeName);
+
+  it('the HOD sees everyone, a manager sees their team and themselves', async () => {
+    const hod = await request(app).get(`/api/leaves/calendar?${q}`).set(as('hod'));
+    expect(hod.status).toBe(200);
+    expect(names(hod)).toEqual(expect.arrayContaining(['Arjun Sharma', 'Ananya Iyer']));
+    const rahul = await request(app).get(`/api/leaves/calendar?${q}`).set(as('rahul'));
+    expect(names(rahul)).toContain('Arjun Sharma');
+    expect(names(rahul)).not.toContain('Ananya Iyer');
+    const ananya = await request(app).get(`/api/leaves/calendar?${q}`).set(as('ananya'));
+    expect(names(ananya)).toContain('Ananya Iyer');
+    expect(names(ananya)).not.toContain('Arjun Sharma');
+  });
+
+  it('an employee sees their own requests, never another team\'s, and no reasons', async () => {
+    const arjun = await request(app).get(`/api/leaves/calendar?${q}`).set(as('arjun'));
+    const mine = arjun.body.items.find((i) => i.employeeName === 'Arjun Sharma');
+    expect(mine).toMatchObject({ mine: true, status: 'PENDING_MANAGER' });
+    expect(JSON.stringify(arjun.body)).not.toMatch(/reason|Local break/);
+    const sneha = await request(app).get(`/api/leaves/calendar?${q}`).set(as('sneha'));
+    expect(names(sneha)).not.toContain('Arjun Sharma');
+  });
+
+  it('only approved leave of teammates shows to an employee', async () => {
+    const list = await request(app).get('/api/leaves?scope=queue').set(as('rahul'));
+    const target = list.body.items.find((l) => l.employeeName === 'Arjun Sharma' && l.fromDate === day(352));
+    expect(target).toBeTruthy();
+    // before approval a teammate (same manager) could not see it; Arjun's own view is covered above.
+    const approved = await request(app).post(`/api/leaves/${target.id}/approve`).set(as('rahul')).send({ comment: 'ok' });
+    expect(approved.status).toBe(200);
+    const again = await request(app).get(`/api/leaves/calendar?${q}`).set(as('arjun'));
+    expect(again.body.items.find((i) => i.id === target.id).status).toBe('APPROVED');
+  });
+
+  it('includes the holidays that apply to the caller', async () => {
+    const arjun = await request(app).get(`/api/leaves/calendar?${q}`).set(as('arjun'));
+    expect(arjun.body.holidays.some((h) => h.name === 'Local Day')).toBe(true);
+    const ananya = await request(app).get(`/api/leaves/calendar?${q}`).set(as('ananya'));
+    expect(ananya.body.holidays.some((h) => h.name === 'Local Day')).toBe(false);
+  });
+
+  it('asks for a sensible range', async () => {
+    expect((await request(app).get(`/api/leaves/calendar?from=${day(5)}&to=${day(1)}`).set(as('hod'))).status).toBe(400);
+    expect((await request(app).get(`/api/leaves/calendar?from=${day(1)}&to=${day(200)}`).set(as('hod'))).status).toBe(400);
+    expect((await request(app).get('/api/leaves/calendar').set(as('hod'))).status).toBe(400);
+    expect((await request(app).get(`/api/leaves/calendar?${q}`)).status).toBe(401);
+  });
+});
+
+describe('dashboard stats', () => {
+  it('needs a sign-in', async () => {
+    expect((await request(app).get('/api/stats')).status).toBe(401);
+  });
+
+  it('an employee gets only their own numbers', async () => {
+    const r = await request(app).get('/api/stats').set(as('arjun'));
+    expect(r.status).toBe(200);
+    expect(r.body.queue).toBeUndefined();
+    expect(r.body.team).toBeUndefined();
+    expect(r.body.mine.open).toBeGreaterThan(0);
+    expect(r.body.mine.byStatus.APPROVED).toBeGreaterThan(0); // approved in the calendar tests
+  });
+
+  it('a manager also gets the queue, who is away, and how fast decisions are', async () => {
+    const r = await request(app).get('/api/stats').set(as('rahul'));
+    expect(r.status).toBe(200);
+    expect(r.body.queue).toMatchObject({ waiting: expect.any(Number), oldestWaitingDays: expect.any(Number) });
+    expect(r.body.team).toMatchObject({ awayToday: expect.any(Number), awayThisWeek: expect.any(Number) });
+    expect(r.body.decisions.decided).toBeGreaterThan(0);
+    expect(r.body.decisions.medianHours).toEqual(expect.any(Number));
+  });
+
+  it('the HOD sees the whole organisation, and the queue counts only HOD-stage requests', async () => {
+    const hod = await request(app).get('/api/stats').set(as('hod'));
+    const waiting = await request(app).get('/api/leaves?scope=queue').set(as('hod'));
+    expect(hod.body.queue.waiting).toBe(waiting.body.total);
+    const rahul = await request(app).get('/api/stats').set(as('rahul'));
+    const rq = await request(app).get('/api/leaves?scope=queue').set(as('rahul'));
+    expect(rahul.body.queue.waiting).toBe(rq.body.total);
   });
 });

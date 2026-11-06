@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Leave longer than this many consecutive (inclusive, excluding Sundays) days needs documents + HOD approval. */
+/** Leave longer than this many consecutive (inclusive, excluding Sundays and public holidays) days needs documents + HOD approval. */
 export const LONG_LEAVE_THRESHOLD_DAYS = 3;
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -45,19 +45,41 @@ export function todayISO(now = new Date()) {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
+const holidayMap = (holidays = []) =>
+  new Map(holidays.map((h) => (typeof h === 'string' ? [h, ''] : [h.date, h.name ?? ''])));
+
 /**
- * Leave days from `from` to `to`, both included, NOT counting Sundays (a Sunday is a day off, so it is
- * never charged as leave). Same working day = 1. Returns 0 if invalid, reversed, or only Sundays.
+ * What a date range costs in leave. Sundays and public holidays are days off, so they are never charged.
+ * `holidays` is a list of ISO date strings or `{ date, name }` objects (the company holiday calendar).
+ * A holiday that falls on a Sunday is reported as a Sunday only.
+ * Returns { days, calendarDays, sundays, holidays: [{ date, name }] }; days is 0 if invalid or reversed.
  */
-export function countLeaveDays(from, to) {
+export function leaveBreakdown(from, to, holidays = []) {
   const a = parseISODate(from);
   const b = parseISODate(to);
-  if (a === null || b === null || b < a) return 0;
-  let days = 0;
+  const out = { days: 0, calendarDays: 0, sundays: 0, holidays: [] };
+  if (a === null || b === null || b < a) return out;
+  const hol = holidayMap(holidays);
   for (let t = a; t <= b; t += DAY_MS) {
-    if (new Date(t).getUTCDay() !== 0) days += 1;
+    out.calendarDays += 1;
+    const iso = new Date(t).toISOString().slice(0, 10);
+    if (new Date(t).getUTCDay() === 0) out.sundays += 1;
+    else if (hol.has(iso)) out.holidays.push({ date: iso, name: hol.get(iso) });
+    else out.days += 1;
   }
-  return days;
+  return out;
+}
+
+/** Leave days from `from` to `to`, both included, not counting Sundays or public holidays. */
+export const countLeaveDays = (from, to, holidays = []) => leaveBreakdown(from, to, holidays).days;
+
+/** Human sentence for what was left out, e.g. "1 Sunday and Diwali are not counted". Empty if nothing was excluded. */
+export function excludedSummary({ sundays = 0, holidays = [] }) {
+  const parts = [];
+  if (sundays) parts.push(`${sundays} Sunday${sundays > 1 ? 's' : ''}`);
+  if (holidays.length) parts.push(holidays.map((h) => h.name || h.date).join(', '));
+  if (!parts.length) return '';
+  return `${parts.join(' and ')} ${parts.length > 1 || sundays > 1 || holidays.length > 1 ? 'are' : 'is'} not counted`;
 }
 
 export const isLongLeave = (days) => days > LONG_LEAVE_THRESHOLD_DAYS;
@@ -69,6 +91,9 @@ export function documentRequirementError(days, documentCount, isEmergency = fals
   }
   return null;
 }
+
+/** Documents are only taken for leave over the threshold; shorter leave never needs (or accepts) them. */
+export const documentsAccepted = (days) => isLongLeave(days);
 
 /** Emergency leaves over the threshold may be filed without documents, but documents become owed. */
 export const MAX_OUTSTANDING_EMERGENCY = 2;
@@ -93,7 +118,7 @@ const isoDate = (label) =>
     .string({ required_error: `${label} is required. Please pick a date.` })
     .refine((v) => parseISODate(v) !== null, `${label} is not a valid date. Use the format YYYY-MM-DD.`);
 
-export const leaveInputSchema = z
+export const makeLeaveInputSchema = (holidays = []) => z
   .object({
     employeeName: z.string().trim().optional(),
     isEmergency: z
@@ -120,12 +145,12 @@ export const leaveInputSchema = z
       });
       return;
     }
-    const counted = countLeaveDays(v.fromDate, v.toDate);
+    const counted = countLeaveDays(v.fromDate, v.toDate, holidays);
     if (counted === 0) {
       ctx.addIssue({
         code: 'custom',
         path: ['toDate'],
-        message: 'Sundays are not counted as leave, so this request has no leave days. Please include at least one other day.',
+        message: 'Sundays and public holidays are not counted as leave, so this request has no leave days. Please include at least one working day.',
       });
       return;
     }
@@ -152,6 +177,9 @@ export const leaveInputSchema = z
       });
     }
   });
+
+/** Schema without a holiday calendar (Sundays only); the server and the apply form use makeLeaveInputSchema(holidays). */
+export const leaveInputSchema = makeLeaveInputSchema();
 
 export const approveSchema = z.object({ comment: z.string().trim().max(1000).optional() });
 export const rejectSchema = z.object({

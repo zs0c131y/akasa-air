@@ -57,6 +57,7 @@ One Node process serves the API **and** the built React files, so hosting is one
 | `docs/architecture/WORKFLOW.md` | Every rule and state in detail |
 | `docs/architecture/ARCHITECTURE.md` | Technical overview |
 | `docs/architecture/SECURITY.md` | Security measures and known limits |
+| `docs/architecture/VALIDATION.md` | Every validation rule, its message, and where it runs |
 | `docs/architecture/DESIGN.md` | Look and feel, copy voice |
 | `docs/architecture/GLOSSARY.md` | Plain-language terms |
 | `docs/api/API.md` | Endpoint list (the live version is at `/api/docs`) |
@@ -232,6 +233,23 @@ Every important event is recorded with **who** (name, role), **what**, **when** 
 | Upload hardening | Type checked from the file's real bytes (not its name), size and count limits, random storage name, **not served as static files**, downloaded only through an access-checked, audited endpoint | `storage/index.js`, `leaveService.js` |
 | Operator-safe CSV export | Cells starting `= + - @` are neutralised so a spreadsheet cannot run them | `leaveService.js` |
 | Secrets in environment | JWT secret, database URL, mail key come from `.env` / host variables; the app refuses to start in production without `JWT_SECRET` | `config.js`, `index.js` |
+
+---
+
+## Part 5b. Validations in one page
+
+The server checks every input itself; most rules also run in the browser from the same shared code (`shared/src/index.js`), so the two never disagree. Full detail, with each exact message: `docs/architecture/VALIDATION.md`.
+
+| Area | What is checked |
+|---|---|
+| Names and accounts | Names (people, holidays, locations): only letters (any language, accents and Indian scripts included) separated by single spaces, 3 to 100 characters (holidays up to 80, locations up to 60); digits give `A <label> cannot contain numbers.` (for example "A full name cannot contain numbers."), anything else (hyphens, apostrophes, full stops, symbols) gives `A <label> can only have letters and spaces.` Email: valid format, at most 254 characters, not already registered, optional work-domain list. Sign-in: both fields required; 5 wrong passwords lock the account for 15 minutes |
+| Passwords | 8 to 128 characters, at least one letter and one number, not a common password, does not contain your first name or the part of your email before the `@`; a new password must differ from the old one |
+| Leave requests and dates | Real `YYYY-MM-DD` dates; end not before start; start not in the past; end at most 365 days ahead; at most 60 charged days; not only Sundays and holidays; reason 5 to 500 characters; no overlap with your other active requests; must fit your remaining allowance; only for yourself |
+| Documents | Required when more than 3 days in a row (unless emergency leave); not accepted for short leave (including on a reply); at most 5 per request, 5 MB each; PDF, JPG or PNG checked from the file's contents; file names cleaned |
+| Emergency leave | May skip documents; one leave still owing documents allows only another emergency leave, two block all new leave |
+| Approvals and comments | Reject and ask-for-information need a comment of 3 to 1000 characters; approve and cancel comments are optional, at most 1000; a reply needs a message (at most 1000) or a document; only the right person at the right stage may act |
+| Holidays, locations and allowances | Holiday date in common formats and a letters-only name; location must exist; one holiday per date per location; allowances 0 to 365 days (half days allowed on the server), year 2000 to 2100; holiday CSV at most 1000 lines and allowance CSV at most 2000, checked line by line and saved all or nothing |
+| Security guards | Keys with `$` or `.` refused (NoSQL injection); JSON bodies at most 100 KB; page sizes capped; CSV export cells neutralised against formulas; CSRF header and CORS allow-list; rate limits on the API, sign-in, sign-up and email links |
 
 ---
 

@@ -29,7 +29,7 @@ async function takeToken(raw, kind) {
 async function sendVerification(user) {
   const raw = await issueToken(user, 'verify', VERIFY_MS);
   const url = `${config.appUrl}/verify-email?token=${raw}`;
-  await sendMail({ to: user.email, ...verifyEmail({ name: user.name.split(' ')[0], url }) }, { link: url });
+  return sendMail({ to: user.email, ...verifyEmail({ name: user.name.split(' ')[0], url }) }, { link: url });
 }
 
 /** New people sign up as employees with no manager and no location; the HOD sets those. */
@@ -56,8 +56,8 @@ export async function signUp({ name, email, password }) {
     passwordHash: await bcrypt.hash(password, 10),
     emailVerified: !needsVerification,
   });
-  if (needsVerification) await sendVerification(user);
-  return { user, needsVerification };
+  const sent = needsVerification ? await sendVerification(user) : null;
+  return { user, needsVerification, emailSent: Boolean(sent?.ok) };
 }
 
 export async function confirmEmail(raw) {

@@ -500,6 +500,7 @@ export async function transition(id, user, action, { comment, expectedVersion, f
     );
   }
   const prepared = action === 'REPLY' ? prepareFiles(files, doc.documents.length) : [];
+  if (prepared.length && !doc.isLong) throw validationError({ documents: NO_DOCS_MSG }, NO_DOCS_MSG);
   const next = applyAction(toSubject(doc), action, actorOf(user), todayISO());
   if (action === 'REPLY' && !comment && prepared.length === 0) {
     throw validationError({ message: 'Please write a reply or attach a document.' });

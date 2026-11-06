@@ -24,15 +24,20 @@ Open the public URL, sign in with a demo button, apply for leave, approve it as 
 - The embedded MongoDB is for local use only; it cannot run on Alpine images.
 
 ## Email (sign-up confirmation and password reset)
-Set these in Railway to turn email on. They are the same variables the other projects use.
+Set these in Railway to turn email on. **Email confirmation at sign-up only happens when they are set**; without them, people who sign up can sign in at once.
 
 | Variable | Value |
 |---|---|
-| `APP_URL` | The public address of the app, such as `https://your-app.up.railway.app`. Links in emails start with this. |
+| `APP_URL` | The public address of the app, such as `https://akasa.adarsh.run`. Links in emails start with this. |
 | `MAILGUN_API_KEY` | Your Mailgun API key |
-| `FROM_EMAIL` | An address on a sending domain that is active in your Mailgun account |
+| `MAILGUN_DOMAIN` | The sending domain active in your Mailgun account. The sender becomes `noreply@<this domain>` unless `FROM_EMAIL` is set |
+| `FROM_EMAIL` | Optional. A full sender address on that domain |
 | `MAILGUN_BASE_URL` | `https://api.mailgun.net` (or `https://api.eu.mailgun.net` for the EU region) |
 | `MAILGUN_SENDER_NAME` | Optional. Defaults to `Layover` |
 | `ALLOWED_EMAIL_DOMAINS` | Optional. Only these domains can sign up, for example `example.com` |
+| `NO_EMAIL_DOMAINS` | Optional. Extra domains that must never be emailed (demo and test domains are always skipped) |
 
-Without these, nothing is emailed: people who sign up can sign in at once, and "forgot password" cannot reach anyone. Set them before real use.
+Notes:
+- A Mailgun **sandbox** domain only delivers to addresses you have authorised in Mailgun. If sign-up says it could not send the confirmation email, check the key, domain and region first.
+- Addresses ending in `.demo`, `.test`, `.example` and similar never receive email, so the demo accounts cost no quota. (The confirmation email at sign-up is sent to whatever address is typed, so test it with a real mailbox.)
+- If the email cannot be sent, the person is told so and can use "Send it again" on the sign-in page.

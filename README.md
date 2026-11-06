@@ -160,6 +160,25 @@ See [docs/operations/DEPLOYMENT.md](docs/operations/DEPLOYMENT.md) for Railway: 
 
 ---
 
+## Validations
+
+Every input is checked on the server, and most rules also run in the browser from the same shared code (`shared/src/index.js`), so mistakes show at once with a plain message under the field.
+
+| Area | What is checked |
+|---|---|
+| Names and accounts | Names (people, holidays, locations): only letters (any language, accents and Indian scripts included) separated by single spaces, 3 to 100 characters (holidays up to 80, locations up to 60); digits give `A <label> cannot contain numbers.` (for example "A full name cannot contain numbers."), anything else (hyphens, apostrophes, full stops, symbols) gives `A <label> can only have letters and spaces.` Email: valid format, at most 254 characters, not already registered, optional work-domain list. Sign-in: both fields required; 5 wrong passwords lock the account for 15 minutes |
+| Passwords | 8 to 128 characters, at least one letter and one number, not a common password, does not contain your first name or the part of your email before the `@`; a new password must differ from the old one |
+| Leave requests and dates | Real `YYYY-MM-DD` dates; end not before start; start not in the past; end at most 365 days ahead; at most 60 charged days; not only Sundays and holidays; reason 5 to 500 characters; no overlap with your other active requests; must fit your remaining allowance; only for yourself |
+| Documents | Required when more than 3 days in a row (unless emergency leave); not accepted for short leave (including on a reply); at most 5 per request, 5 MB each; PDF, JPG or PNG checked from the file's contents; file names cleaned |
+| Emergency leave | May skip documents; one leave still owing documents allows only another emergency leave, two block all new leave |
+| Approvals and comments | Reject and ask-for-information need a comment of 3 to 1000 characters; approve and cancel comments are optional, at most 1000; a reply needs a message (at most 1000) or a document; only the right person at the right stage may act |
+| Holidays, locations and allowances | Holiday date in common formats and a letters-only name; location must exist; one holiday per date per location; allowances 0 to 365 days (half days allowed on the server), year 2000 to 2100; holiday CSV at most 1000 lines and allowance CSV at most 2000, checked line by line and saved all or nothing |
+| Security guards | Keys with `$` or `.` refused (NoSQL injection); JSON bodies at most 100 KB; page sizes capped; CSV export cells neutralised against formulas; CSRF header and CORS allow-list; rate limits on the API, sign-in, sign-up and email links |
+
+The full list (each field, rule, exact message, and whether it runs in the browser, the server or both) is in [docs/architecture/VALIDATION.md](docs/architecture/VALIDATION.md).
+
+---
+
 ## Future goals
 
 - Automated browser (end-to-end) tests and an automated accessibility audit in CI.
@@ -211,6 +230,7 @@ The shared demo password is defined in `server/src/seed.js`. Seed data has reque
 | Rules and states in detail | [docs/architecture/WORKFLOW.md](docs/architecture/WORKFLOW.md) |
 | Technical overview | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) |
 | Security | [docs/architecture/SECURITY.md](docs/architecture/SECURITY.md) |
+| Every validation rule and message | [docs/architecture/VALIDATION.md](docs/architecture/VALIDATION.md) |
 | Design and copy voice | [docs/architecture/DESIGN.md](docs/architecture/DESIGN.md) |
 | Plain-language terms | [docs/architecture/GLOSSARY.md](docs/architecture/GLOSSARY.md) |
 | Endpoints (live version at `/api/docs`) | [docs/api/API.md](docs/api/API.md) |

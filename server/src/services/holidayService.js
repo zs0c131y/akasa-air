@@ -1,3 +1,4 @@
+import { nameProblem } from '@lms/shared';
 import { Holiday } from '../models/Holiday.js';
 import { Location } from '../models/Location.js';
 import { User } from '../models/User.js';
@@ -42,8 +43,8 @@ export async function addHoliday({ date, name, location }, user) {
   const iso = normalizeDate(date);
   if (iso === null) fields.date = 'Please pick a valid date.';
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean.length < 2) fields.name = 'Please give the holiday a name, for example "Diwali".';
-  if (clean.length > 80) fields.name = 'Please keep the name under 80 characters.';
+  const nameIssue = nameProblem(clean, { label: 'holiday name', max: 80 });
+  if (nameIssue) fields.name = nameIssue;
   const place = await resolveLocation(location);
   if (place.error) fields.location = place.error;
   if (Object.keys(fields).length) throw validationError(fields);
@@ -96,12 +97,9 @@ export async function importHolidays(text, { apply = false } = {}, user) {
     if (iso === null) {
       status = 'error';
       message = `"${r.date}" is not a date we can read. Try 2026-10-02 or 02/10/2026.`;
-    } else if (name.length < 2) {
+    } else if (nameProblem(name, { label: 'holiday name', max: 80 })) {
       status = 'error';
-      message = 'This line has no holiday name.';
-    } else if (name.length > 80) {
-      status = 'error';
-      message = 'The name is longer than 80 characters.';
+      message = nameProblem(name, { label: 'holiday name', max: 80 });
     } else if (place.error) {
       status = 'error';
       message = place.error;
@@ -146,8 +144,8 @@ export async function listLocations() {
 
 export async function addLocation(name) {
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean.length < 2 || clean.length > 60)
-    throw validationError({ name: 'Please give the location a name of 2 to 60 characters, for example "Bengaluru".' });
+  const issue = nameProblem(clean, { label: 'location name', max: 60 });
+  if (issue) throw validationError({ name: issue });
   if (NATIONAL_WORDS.includes(clean.toLowerCase()))
     throw validationError({ name: `"${clean}" is reserved for holidays that apply everywhere.` });
   try {

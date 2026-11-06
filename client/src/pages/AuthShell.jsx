@@ -78,7 +78,7 @@ export function PasswordField({ id, label, value, onChange, autoComplete, error,
           type="button"
           variant="ghost"
           size="icon"
-          className="absolute right-0 top-0 text-muted-foreground"
+          className="absolute right-1 top-1 h-9 w-9 text-muted-foreground"
           aria-label={shown ? 'Hide password' : 'Show password'}
           aria-pressed={shown}
           onClick={() => setShown((s) => !s)}

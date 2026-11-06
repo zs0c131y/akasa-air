@@ -116,7 +116,8 @@ describe('long leave (>3 days) rule', () => {
 
 describe('info request loop', () => {
   it('manager asks, employee replies with a document, back to manager', async () => {
-    const r = await submit('arjun', { fromDate: day(60), toDate: day(61), reason: 'Medical visit' });
+    // Long leave (more than 3 days in a row), because only long leave takes documents.
+    const r = await submit('arjun', { fromDate: day(60), toDate: day(65), reason: 'Medical visit' }, [{}]);
     const id = r.body.id;
     const q = await request(app).post(`/api/leaves/${id}/request-info`).set(as('rahul')).send({ comment: 'Which clinic?' });
     expect(q.body.status).toBe('INFO_REQUESTED');
@@ -128,7 +129,19 @@ describe('info request loop', () => {
       .field('message', 'City clinic')
       .attach('documents', PDF, 'slip.pdf');
     expect(rep.body.status).toBe('PENDING_MANAGER');
-    expect(rep.body.documents).toHaveLength(1);
+    expect(rep.body.documents).toHaveLength(2);
+  });
+
+  it('short leave takes no document, even in a reply', async () => {
+    const r = await submit('arjun', { fromDate: day(75), toDate: day(75), reason: 'Quick errand' });
+    await request(app).post(`/api/leaves/${r.body.id}/request-info`).set(as('rahul')).send({ comment: 'Which errand?' });
+    const rep = await request(app)
+      .post(`/api/leaves/${r.body.id}/reply`)
+      .set(as('arjun'))
+      .field('message', 'Bank')
+      .attach('documents', PDF, 'slip.pdf');
+    expect(rep.status).toBe(400);
+    expect(rep.body.error.fields.documents).toMatch(/longer than 3 days/);
   });
 });
 

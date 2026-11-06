@@ -138,18 +138,25 @@ export function createAuthRouter() {
   /** Anyone can sign up as an employee. The HOD then sets their manager and location before they can apply. */
   authRouter.post('/signup', signupLimiter, async (req, res) => {
     const input = parse(signupSchema, req.body);
-    const { user, needsVerification } = await signUp(input);
+    const { user, needsVerification, emailSent } = await signUp(input);
     await audit(req, {
       action: 'SIGNUP',
       actor: asActor(user),
-      detail: needsVerification ? 'Waiting for email confirmation' : 'Account created',
+      detail: needsVerification
+        ? emailSent
+          ? 'Waiting for email confirmation'
+          : 'Waiting for email confirmation (the email could not be sent)'
+        : 'Account created',
     });
     res.status(201).json({
       ok: true,
       needsVerification,
-      message: needsVerification
-        ? 'Almost there. We sent a link to your email. Open it to confirm your address.'
-        : 'Your account is ready. You can sign in now.',
+      emailSent,
+      message: !needsVerification
+        ? 'Your account is ready. You can sign in now.'
+        : emailSent
+          ? 'Almost there. We sent a link to your email. Open it to confirm your address.'
+          : 'Your account is created, but we could not send the confirmation email just now. Wait a minute, then use "Send it again" on the sign-in page.',
     });
   });
 

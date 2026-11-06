@@ -13,6 +13,8 @@ import {
   makeLeaveInputSchema,
   consecutiveChain,
   absenceDays,
+  nameProblem,
+  signupSchema,
 } from './index.js';
 
 const plus = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
@@ -166,5 +168,34 @@ describe('days in a row (absenceDays)', () => {
     expect(c.chainDays).toBe(5);
     expect(c.absenceDays).toBe(6);
     expect(isLongLeave(c.absenceDays)).toBe(true);
+  });
+});
+
+describe('names: letters only', () => {
+  it.each(['Asha Menon', 'José Álvarez', 'Ann', 'आशा शर्मा', 'Priya Kumari Nair'])('accepts %s', (n) => expect(nameProblem(n)).toBeNull());
+  it('needs at least 3 letters', () => {
+    expect(nameProblem('Al')).toMatch(/at least 3/);
+    expect(nameProblem('  ')).toMatch(/at least 3/);
+  });
+  it.each([
+    'Asha2',
+    '123',
+    'Asha M3non',
+    'Asha_Menon',
+    'Asha@Menon',
+    'Asha #1',
+    '<b>Asha</b>',
+    'Asha;DROP',
+    '---',
+    "Priya O'Neil",
+    'Mary-Anne Rao',
+    'Dr. Iyer',
+    'Asha.',
+  ])('refuses %s', (n) => expect(nameProblem(n)).toBeTruthy());
+  it('says numbers are the problem when there are digits', () => expect(nameProblem('Asha2')).toMatch(/cannot contain numbers/));
+  it('is used by sign-up', () => {
+    const r = signupSchema.safeParse({ name: 'Asha 2', email: 'a@b.in', password: 'Skyline2026' });
+    expect(r.success).toBe(false);
+    expect(r.error.issues[0].path).toEqual(['name']);
   });
 });

@@ -1,6 +1,15 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { MAX_FILES, MAX_FILE_BYTES, approveSchema, rejectSchema, infoRequestSchema, replySchema, zodFields } from '@lms/shared';
+import {
+  MAX_FILES,
+  MAX_FILE_BYTES,
+  approveSchema,
+  cancelSchema,
+  rejectSchema,
+  infoRequestSchema,
+  replySchema,
+  zodFields,
+} from '@lms/shared';
 import { requireAuth } from '../middleware/auth.js';
 import { validationError } from '../errors.js';
 import * as svc from '../services/leaveService.js';
@@ -129,7 +138,8 @@ decision('/:id/reject', 'REJECT', rejectSchema);
 decision('/:id/request-info', 'REQUEST_INFO', infoRequestSchema);
 
 leavesRouter.post('/:id/cancel', async (req, res) => {
-  const leave = await svc.transition(req.params.id, req.user, 'CANCEL', { comment: req.body?.comment });
+  const { comment } = parse(cancelSchema, req.body);
+  const leave = await svc.transition(req.params.id, req.user, 'CANCEL', { comment });
   await logResult(req, 'LEAVE_CANCEL', leave);
   await notifyLeaveEvent('CANCEL', leave.id, req.user);
   res.json(leave);

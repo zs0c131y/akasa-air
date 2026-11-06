@@ -3,10 +3,13 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..', '..');
 
 // Load <repo>/.env if present (real environment variables take precedence).
-try {
-  process.loadEnvFile(path.join(root, '.env'));
-} catch {
-  /* no .env file: defaults apply */
+// Tests never read the real .env: they must not see (or use) real database or mail credentials.
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    process.loadEnvFile(path.join(root, '.env'));
+  } catch {
+    /* no .env file: defaults apply */
+  }
 }
 
 /** Read lazily so tests can change env vars before first use. */
@@ -70,13 +73,15 @@ export const config = {
   },
   /** Mailgun HTTP API (same variables as the other projects). All three of key, sender and domain are needed to send. */
   get mailgun() {
-    const senderEmail = process.env.FROM_EMAIL || '';
+    // Accepts the variable names of the other projects (FROM_EMAIL) and the plain Mailgun ones (MAILGUN_DOMAIN).
+    const domainVar = (process.env.MAILGUN_DOMAIN || '').trim();
+    const senderEmail = (process.env.FROM_EMAIL || '').trim() || (domainVar ? `noreply@${domainVar}` : '');
     return {
-      apiKey: process.env.MAILGUN_API_KEY || '',
-      baseUrl: (process.env.MAILGUN_BASE_URL || 'https://api.mailgun.net').replace(/\/+$/, ''),
+      apiKey: (process.env.MAILGUN_API_KEY || '').trim(),
+      baseUrl: (process.env.MAILGUN_BASE_URL || 'https://api.mailgun.net').trim().replace(/\/+$/, ''),
       senderEmail,
       senderName: process.env.MAILGUN_SENDER_NAME || 'Layover',
-      domain: senderEmail.split('@')[1] || '',
+      domain: domainVar || senderEmail.split('@')[1] || '',
     };
   },
   /** Optional comma-separated list of email domains allowed to sign up (empty = any). */

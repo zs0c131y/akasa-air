@@ -292,3 +292,52 @@ describe('sign-up limited to work email domains', () => {
     }
   });
 });
+
+describe('mail settings', () => {
+  it('accepts MAILGUN_DOMAIN on its own (sender defaults to noreply@ that domain) as well as FROM_EMAIL', async () => {
+    const { config } = await import('../src/config.js');
+    const { isMailConfigured } = await import('../src/services/mail.js');
+    const keep = { k: process.env.MAILGUN_API_KEY, d: process.env.MAILGUN_DOMAIN, f: process.env.FROM_EMAIL };
+    try {
+      delete process.env.FROM_EMAIL;
+      process.env.MAILGUN_API_KEY = 'key-test';
+      process.env.MAILGUN_DOMAIN = 'mg.example.test';
+      expect(config.mailgun).toMatchObject({ domain: 'mg.example.test', senderEmail: 'noreply@mg.example.test' });
+      expect(isMailConfigured()).toBe(true);
+      process.env.FROM_EMAIL = 'hello@other.example.test';
+      expect(config.mailgun.senderEmail).toBe('hello@other.example.test');
+      expect(config.mailgun.domain).toBe('mg.example.test');
+      delete process.env.MAILGUN_DOMAIN;
+      expect(config.mailgun.domain).toBe('other.example.test');
+      delete process.env.MAILGUN_API_KEY;
+      expect(isMailConfigured()).toBe(false);
+    } finally {
+      for (const [n, v] of [
+        ['MAILGUN_API_KEY', keep.k],
+        ['MAILGUN_DOMAIN', keep.d],
+        ['FROM_EMAIL', keep.f],
+      ]) {
+        if (v === undefined) delete process.env[n];
+        else process.env[n] = v;
+      }
+    }
+  });
+
+  it('says so when the confirmation email cannot be sent', async () => {
+    process.env.MAILGUN_API_KEY = 'key-test';
+    process.env.FROM_EMAIL = 'noreply@mg.example.test';
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 401 });
+    try {
+      const r = await post('/api/auth/signup', { name: 'Tara Nair', email: 'tara.nair@akasa.demo', password: 'Skyline2026' });
+      expect(r.status).toBe(201);
+      expect(r.body).toMatchObject({ needsVerification: true, emailSent: false });
+      expect(r.body.message).toMatch(/could not send the confirmation email/);
+      expect((await login('tara.nair@akasa.demo', 'Skyline2026')).status).toBe(403);
+    } finally {
+      globalThis.fetch = realFetch;
+      delete process.env.MAILGUN_API_KEY;
+      delete process.env.FROM_EMAIL;
+    }
+  });
+});

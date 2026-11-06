@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Notification } from '../models/Notification.js';
 import { User } from '../models/User.js';
 import { LeaveRequest } from '../models/LeaveRequest.js';
@@ -189,7 +190,8 @@ export async function markRead(userId, { ids, all }) {
   const filter = {
     userId,
     readAt: null,
-    ...(all ? {} : { _id: { $in: Array.isArray(ids) ? ids.filter((i) => typeof i === 'string') : [] } }),
+    // Anything that is not a real id is ignored, so a bad id cannot turn into a server error.
+    ...(all ? {} : { _id: { $in: Array.isArray(ids) ? ids.filter((i) => typeof i === 'string' && mongoose.isValidObjectId(i)) : [] } }),
   };
   const r = await Notification.updateMany(filter, { readAt: new Date() });
   return { updated: r.modifiedCount };

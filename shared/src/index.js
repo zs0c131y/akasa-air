@@ -228,7 +228,11 @@ export const makeLeaveInputSchema = (holidays = []) =>
 /** Schema without a holiday calendar (Sundays only); the server and the apply form use makeLeaveInputSchema(holidays). */
 export const leaveInputSchema = makeLeaveInputSchema();
 
-export const approveSchema = z.object({ comment: z.string().trim().max(1000).optional() });
+export const approveSchema = z.object({
+  comment: z.string().trim().max(1000, 'Please keep the comment under 1000 characters.').optional(),
+});
+/** Cancelling takes the same optional comment as approving. */
+export const cancelSchema = approveSchema;
 export const rejectSchema = z.object({
   comment: z
     .string({ required_error: 'Please explain why the request is rejected.' })
@@ -274,6 +278,21 @@ export function passwordProblem(password, { email = '', name = '' } = {}) {
   return null;
 }
 
+/**
+ * Names (of people, holidays, places): letters in any language (accents and Indian scripts included) separated by
+ * single spaces. No digits, hyphens, apostrophes, full stops or any other special characters. Returns a friendly message, or null if fine.
+ */
+export function nameProblem(value, { label = 'name', min = 3, max = 100 } = {}) {
+  const v = String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  if (v.length < min) return `Please enter a ${label} of at least ${min} letters.`;
+  if (v.length > max) return `Please keep the ${label} under ${max} characters.`;
+  if (/\d/.test(v)) return `A ${label} cannot contain numbers.`;
+  if (!/^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u.test(v)) return `A ${label} can only have letters and spaces.`;
+  return null;
+}
+
 const emailField = z
   .string({ required_error: 'Please enter your email address.' })
   .trim()
@@ -286,8 +305,11 @@ export const signupSchema = z
     name: z
       .string({ required_error: 'Please tell us your name.' })
       .trim()
-      .min(3, 'Please enter your full name (at least 3 letters).')
-      .max(100, 'Please keep your name under 100 characters.'),
+      .max(100, 'Please keep your name under 100 characters.')
+      .superRefine((v, ctx) => {
+        const problem = nameProblem(v, { label: 'full name' });
+        if (problem) ctx.addIssue({ code: 'custom', message: problem });
+      }),
     email: emailField,
     password: z.string({ required_error: 'Please choose a password.' }),
   })

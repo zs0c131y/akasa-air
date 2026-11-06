@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Leave longer than this many consecutive (inclusive calendar) days needs documents + HOD approval. */
+/** Leave longer than this many consecutive (inclusive, excluding Sundays) days needs documents + HOD approval. */
 export const LONG_LEAVE_THRESHOLD_DAYS = 3;
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -45,12 +45,19 @@ export function todayISO(now = new Date()) {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
-/** Inclusive calendar days from `from` to `to` (same day = 1). Returns 0 if invalid or reversed. */
+/**
+ * Leave days from `from` to `to`, both included, NOT counting Sundays (a Sunday is a day off, so it is
+ * never charged as leave). Same working day = 1. Returns 0 if invalid, reversed, or only Sundays.
+ */
 export function countLeaveDays(from, to) {
   const a = parseISODate(from);
   const b = parseISODate(to);
   if (a === null || b === null || b < a) return 0;
-  return Math.round((b - a) / DAY_MS) + 1;
+  let days = 0;
+  for (let t = a; t <= b; t += DAY_MS) {
+    if (new Date(t).getUTCDay() !== 0) days += 1;
+  }
+  return days;
 }
 
 export const isLongLeave = (days) => days > LONG_LEAVE_THRESHOLD_DAYS;
@@ -113,7 +120,16 @@ export const leaveInputSchema = z
       });
       return;
     }
-    if (countLeaveDays(v.fromDate, v.toDate) > MAX_LEAVE_DAYS) {
+    const counted = countLeaveDays(v.fromDate, v.toDate);
+    if (counted === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['toDate'],
+        message: 'Sundays are not counted as leave, so this request has no leave days. Please include at least one other day.',
+      });
+      return;
+    }
+    if (counted > MAX_LEAVE_DAYS) {
       ctx.addIssue({
         code: 'custom',
         path: ['toDate'],

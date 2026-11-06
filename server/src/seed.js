@@ -18,7 +18,9 @@ export const DEMO_USERS = [
   { key: 'meera', name: 'Meera Joshi', email: 'meera.joshi@akasa.demo', role: 'EMPLOYEE', boss: 'ananya' },
 ];
 
-const offset = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
+/** Demo dates never start or end on a Sunday (Sundays are not counted as leave). */
+const nonSunday = (t) => (new Date(t).getUTCDay() === 0 ? t + 86400000 : t);
+const offset = (n) => new Date(nonSunday(parseISODate(todayISO()) + n * 86400000)).toISOString().slice(0, 10);
 
 const SAMPLE_PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 

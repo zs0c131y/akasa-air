@@ -45,7 +45,7 @@ Seed data has requests in every status, including long leaves waiting at the man
 **HOD:** second-level queue (sees the manager's comment), all requests.
 
 ## Rules and assumptions
-- **Consecutive days** = inclusive calendar days from start to end (1 Nov to 5 Nov = 5). Threshold is `LONG_LEAVE_THRESHOLD_DAYS = 3` in `shared/src/index.js`; exactly 3 days is *not* long.
+- **Consecutive days** = inclusive calendar days from start to end, **not counting Sundays** (Mon 2 Nov to Fri 6 Nov = 5; Fri 6 Nov to Tue 10 Nov = 4). Threshold is `LONG_LEAVE_THRESHOLD_DAYS = 3` in `shared/src/index.js`; exactly 3 days is *not* long.
 - **More than 3 days:** documents are required (blocked in UI and API) and approval goes Manager → HOD; either can reject, which ends the request. 3 days or fewer: Manager only.
 - **Emergency leave** (checkbox): may exceed 3 days without documents, still needs both approvals. Documents are due before the employee returns to work (end date + 1 day) or before their next leave. While one emergency leave is missing documents, only one more *emergency* leave is allowed; normal leave is blocked. With two missing, all new leave is blocked until documents are uploaded.
 - A manager's own leave goes straight to the HOD; HOD leave is auto-approved and marked on the timeline.

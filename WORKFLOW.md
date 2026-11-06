@@ -41,7 +41,7 @@ Every leave request moves through one state machine, implemented in `server/src/
 Illegal moves return `409 ILLEGAL_TRANSITION`; permitted state but wrong person returns `403`. Nobody can act on their own request as an approver. Two people deciding at once is stopped by a version check (`409 STALE_REQUEST`).
 
 ## The long-leave rule
-Days are counted inclusively: 1 Nov to 5 Nov is **5 days**. More than 3 days (`LONG_LEAVE_THRESHOLD_DAYS`) means documents are required and both Manager and HOD must approve. Exactly 3 is short.
+Days are counted inclusively, **except Sundays, which are never counted as leave**: Mon 2 Nov to Fri 6 Nov is **5 days**; Fri 6 Nov to Tue 10 Nov is **4 days** (the Sunday is skipped). A request that covers only Sundays is refused. Documents for emergency leave fall due on the next working day (a Sunday is skipped). More than 3 days (`LONG_LEAVE_THRESHOLD_DAYS`) means documents are required and both Manager and HOD must approve. Exactly 3 is short.
 
 ## Emergency leave
 Tick "Emergency leave" to file a long leave without documents. Both approvals are still needed. Documents are due by the day after the leave ends, or before the next leave.

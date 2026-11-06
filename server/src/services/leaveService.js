@@ -22,7 +22,12 @@ const ACTIVE = ['PENDING_MANAGER', 'PENDING_HOD', 'INFO_REQUESTED', 'APPROVED'];
 
 /** True when an emergency leave over the threshold was filed without any document yet. */
 const owesDocuments = (d) => d.isEmergency && d.isLong && d.documents.length === 0 && ACTIVE.includes(d.status);
-const nextDay = (iso) => new Date(parseISODate(iso) + 86400000).toISOString().slice(0, 10);
+/** The next working day after `iso` (skips Sunday): when the employee is back and documents fall due. */
+const nextDay = (iso) => {
+  let t = parseISODate(iso) + 86400000;
+  if (new Date(t).getUTCDay() === 0) t += 86400000;
+  return new Date(t).toISOString().slice(0, 10);
+};
 
 const sid = (v) => (v == null ? null : String(v));
 const actorOf = (user) => ({ id: user.id, role: user.role });

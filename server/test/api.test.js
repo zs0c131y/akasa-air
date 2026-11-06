@@ -5,7 +5,7 @@ import path from 'node:path';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { todayISO, parseISODate } from '@lms/shared';
+import { todayISO, parseISODate, countLeaveDays } from '@lms/shared';
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-test-'));
 const { createApp } = await import('../src/app.js');
@@ -16,7 +16,10 @@ let mongod;
 let app;
 const tokens = {};
 const PDF = Buffer.from('%PDF-1.4\n%%EOF\n');
-const day = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
+// Test dates skip Sundays because Sundays are not counted as leave.
+const nonSunday = (t) => (new Date(t).getUTCDay() === 0 ? t + 86400000 : t);
+const nextWorkingDay = (iso) => new Date(nonSunday(parseISODate(iso) + 86400000)).toISOString().slice(0, 10);
+const day = (n) => new Date(nonSunday(parseISODate(todayISO()) + n * 86400000)).toISOString().slice(0, 10);
 
 const login = async (email) => {
   const r = await request(app).post('/api/auth/login').send({ email, password: DEMO_PASSWORD });
@@ -76,14 +79,14 @@ describe('short leave (<=3 days) flow', () => {
 
 describe('long leave (>3 days) rule', () => {
   it('blocks submission without a document (4 days)', async () => {
-    const r = await submit('arjun', { fromDate: day(20), toDate: day(23), reason: 'Vacation' });
+    const r = await submit('arjun', { fromDate: day(20), toDate: day(24), reason: 'Vacation' });
     expect(r.status).toBe(400);
     expect(r.body.error.fields.documents).toMatch(/supporting document/);
   });
   it('two-level approval: manager then HOD', async () => {
     const r = await submit('arjun', { fromDate: day(20), toDate: day(24), reason: 'Vacation' }, [{}]);
     expect(r.status).toBe(201);
-    expect(r.body).toMatchObject({ days: 5, isLong: true, status: 'PENDING_MANAGER' });
+    expect(r.body).toMatchObject({ days: countLeaveDays(day(20), day(24)), isLong: true, status: 'PENDING_MANAGER' });
     const id = r.body.id;
     expect((await request(app).post(`/api/leaves/${id}/approve`).set(as('hod')).send({})).status).toBe(403);
     const m = await request(app).post(`/api/leaves/${id}/approve`).set(as('rahul')).send({});
@@ -189,7 +192,7 @@ describe('emergency leave', () => {
   it('allows >3 days without documents, then blocks as documents stay owed', async () => {
     const e1 = await submit('sneha', { fromDate: day(200), toDate: day(204), reason: 'Family emergency', isEmergency: 'true' });
     expect(e1.status).toBe(201);
-    expect(e1.body).toMatchObject({ isEmergency: true, documentsPending: true, documentsDueBy: day(205) });
+    expect(e1.body).toMatchObject({ isEmergency: true, documentsPending: true, documentsDueBy: nextWorkingDay(day(204)) });
     // a normal leave is blocked while documents are owed
     const normal = await submit('sneha', { fromDate: day(210), toDate: day(210), reason: 'Personal work' });
     expect(normal.status).toBe(409);

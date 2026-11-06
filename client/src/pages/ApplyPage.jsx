@@ -100,7 +100,7 @@ export default function ApplyPage() {
         </div>
       </div>
       <p className="daycount" aria-live="polite">
-        {days > 0 ? `${days} day${days > 1 ? 's' : ''}` : 'Pick valid dates'}
+        {days > 0 ? `${days} leave day${days > 1 ? 's' : ''} (Sundays not counted)` : 'Pick valid dates (Sundays are not counted as leave)'}
         {long && !form.isEmergency && ` — more than ${LONG_LEAVE_THRESHOLD_DAYS} days: a supporting document is required, and both your manager and the HOD must approve.`}
         {long && form.isEmergency && ' — emergency: documents can follow, but both your manager and the HOD must approve.'}
       </p>

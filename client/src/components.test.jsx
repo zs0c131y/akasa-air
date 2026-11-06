@@ -35,14 +35,22 @@ describe('ErrorScreen', () => {
     [{ status: 404, message: 'Missing.' }, /could not find/i],
     [{ code: 'NETWORK', message: 'x' }, /offline/i],
   ])('shows a friendly title for %o', (error, title) => {
-    render(<MemoryRouter><ErrorScreen error={error} /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ErrorScreen error={error} />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole('heading')).toHaveTextContent(title);
   });
 });
 
 describe('LoginPage', () => {
   it('signs in with one click and never displays a password', async () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
     expect(document.body.textContent).not.toMatch(/Password@/);
     fireEvent.click(screen.getByRole('button', { name: /Rahul Mehta/ }));
     await waitFor(() => expect(login).toHaveBeenCalledWith('rahul.mehta@akasa.demo', expect.any(String)));

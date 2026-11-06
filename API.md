@@ -1,5 +1,7 @@
 # API
 
+**Interactive docs:** open `/api/docs` on a running server (for example http://localhost:4000/api/docs) to browse and try every endpoint. The machine-readable OpenAPI file is at `/api/docs.json`. It is kept in step with the code by a test, so it cannot silently drift. This page is the written summary.
+
 Base path `/api`. JSON in and out, except uploads (`multipart/form-data`, field `documents`). Browsers authenticate with httpOnly cookies; API clients can send `Authorization: Bearer <token>` (the token is returned by login).
 
 ## Errors

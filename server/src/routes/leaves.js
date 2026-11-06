@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { validationError } from '../errors.js';
 import * as svc from '../services/leaveService.js';
 import { audit } from '../services/auditService.js';
+import { notifyLeaveEvent } from '../services/notificationService.js';
 
 export const leavesRouter = Router();
 leavesRouter.use(requireAuth);
@@ -12,12 +13,24 @@ leavesRouter.use(requireAuth);
 /** Records an audit entry for a completed request action using its latest timeline step. */
 async function logResult(req, action, leave, detail) {
   const last = leave.timeline.at(-1);
-  await audit(req, { action, entityId: leave.id, employeeName: leave.employeeName, fromStatus: last?.fromStatus, toStatus: leave.status, detail: detail ?? last?.comment });
+  await audit(req, {
+    action,
+    entityId: leave.id,
+    employeeName: leave.employeeName,
+    fromStatus: last?.fromStatus,
+    toStatus: leave.status,
+    detail: detail ?? last?.comment,
+  });
 }
 /** A request that is short alone but joins other leave into a stretch over 3 days is recorded for the HOD to see. */
 async function flagSplit(req, leave) {
   const others = leave.joinedWith.map((j) => `${j.fromDate} to ${j.toDate}`).join(', ');
-  await audit(req, { action: 'SPLIT_LEAVE_FLAGGED', entityId: leave.id, employeeName: leave.employeeName, detail: `${leave.fromDate} to ${leave.toDate} follows ${others}: ${leave.absenceDays} days in a row` });
+  await audit(req, {
+    action: 'SPLIT_LEAVE_FLAGGED',
+    entityId: leave.id,
+    employeeName: leave.employeeName,
+    detail: `${leave.fromDate} to ${leave.toDate} follows ${others}: ${leave.absenceDays} days in a row`,
+  });
 }
 const docCount = (req) => (req.files?.length ? `${req.files.length} document(s) uploaded` : undefined);
 
@@ -35,7 +48,13 @@ function parse(schema, body) {
 
 leavesRouter.get('/chain', async (req, res) => {
   const { from, to, excludeId } = req.query;
-  res.json(await svc.previewChain(req.user, { from: String(from ?? ''), to: String(to ?? ''), excludeId: typeof excludeId === 'string' ? excludeId : null }));
+  res.json(
+    await svc.previewChain(req.user, {
+      from: String(from ?? ''),
+      to: String(to ?? ''),
+      excludeId: typeof excludeId === 'string' ? excludeId : null,
+    }),
+  );
 });
 
 leavesRouter.get('/calendar', async (req, res) => {
@@ -52,8 +71,14 @@ leavesRouter.get('/', async (req, res) => {
 
 leavesRouter.post('/', upload, async (req, res) => {
   const leave = await svc.createLeave(req.user, req.body, req.files);
-  await logResult(req, 'LEAVE_SUBMITTED', leave, `${leave.days} day(s)${leave.isEmergency ? ', emergency' : ''}${leave.isLong ? ', long leave' : ''}; ${docCount(req) ?? 'no documents'}${req.user.role === 'HOD' ? '; HOD leave auto-approved' : ''}`);
+  await logResult(
+    req,
+    'LEAVE_SUBMITTED',
+    leave,
+    `${leave.days} day(s)${leave.isEmergency ? ', emergency' : ''}${leave.isLong ? ', long leave' : ''}; ${docCount(req) ?? 'no documents'}${req.user.role === 'HOD' ? '; HOD leave auto-approved' : ''}`,
+  );
   if (leave.splitFlag) await flagSplit(req, leave);
+  await notifyLeaveEvent('SUBMITTED', leave.id, req.user);
   res.status(201).json(leave);
 });
 
@@ -73,6 +98,7 @@ const decision = (path, action, schema) =>
     const { comment } = parse(schema, req.body);
     const leave = await svc.transition(req.params.id, req.user, action, { comment, expectedVersion: req.body?.version });
     await logResult(req, `LEAVE_${action}`, leave);
+    await notifyLeaveEvent(action, leave.id, req.user);
     res.json(leave);
   });
 
@@ -83,6 +109,7 @@ decision('/:id/request-info', 'REQUEST_INFO', infoRequestSchema);
 leavesRouter.post('/:id/cancel', async (req, res) => {
   const leave = await svc.transition(req.params.id, req.user, 'CANCEL', { comment: req.body?.comment });
   await logResult(req, 'LEAVE_CANCEL', leave);
+  await notifyLeaveEvent('CANCEL', leave.id, req.user);
   res.json(leave);
 });
 
@@ -90,6 +117,7 @@ leavesRouter.post('/:id/reply', upload, async (req, res) => {
   const { message } = parse(replySchema, req.body);
   const leave = await svc.transition(req.params.id, req.user, 'REPLY', { comment: message, files: req.files });
   await logResult(req, 'LEAVE_REPLY', leave, docCount(req));
+  await notifyLeaveEvent('REPLY', leave.id, req.user);
   res.json(leave);
 });
 

@@ -2,6 +2,7 @@ import { config } from './config.js';
 import { connectDb, disconnectDb } from './db.js';
 import { createApp } from './app.js';
 import { seedIfEmpty, DEMO_USERS } from './seed.js';
+import { backfillEmployeeCodes } from './models/User.js';
 import { migrateHolidayIndexes, seedHolidaysIfEmpty, seedLocationsIfEmpty } from './services/holidayService.js';
 
 if (!process.env.JWT_SECRET) {
@@ -15,6 +16,7 @@ if (!process.env.JWT_SECRET) {
 await connectDb();
 if (config.seedOnStart && (await seedIfEmpty())) console.log('[seed] Demo data created.');
 await migrateHolidayIndexes();
+if ((await backfillEmployeeCodes()) > 0) console.log('[migrate] Employee IDs handed out.');
 if (await seedLocationsIfEmpty()) console.log('[seed] Locations created.');
 if (await seedHolidaysIfEmpty()) console.log('[seed] Holiday calendar created.');
 

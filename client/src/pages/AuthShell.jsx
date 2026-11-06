@@ -32,11 +32,15 @@ export function AuthShell({ kicker, title, intro, children, back = true }) {
     <div className="min-h-screen">
       <header className="border-b">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="rounded-md" aria-label="Layover by Akasa Air, home"><Brand /></Link>
+          <Link to="/" className="rounded-md" aria-label="Layover by Akasa Air, home">
+            <Brand />
+          </Link>
           <ThemeToggle />
         </div>
       </header>
-      <main id="content" className="container pb-24 pt-8 sm:pt-12">{body}</main>
+      <main id="content" className="container pb-24 pt-8 sm:pt-12">
+        {body}
+      </main>
     </div>
   );
 }
@@ -77,7 +81,11 @@ export function PasswordField({ id, label, value, onChange, autoComplete, error,
         </Button>
       </div>
       <FieldError msg={error} id={errId} />
-      {!error && live && <p id={hintId} className="mt-1.5 text-sm text-muted-foreground">{live}</p>}
+      {!error && live && (
+        <p id={hintId} className="mt-1.5 text-sm text-muted-foreground">
+          {live}
+        </p>
+      )}
     </div>
   );
 }

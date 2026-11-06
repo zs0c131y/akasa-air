@@ -29,7 +29,10 @@ export const config = {
   },
   /** Comma-separated extra browser origins allowed to call the API (same-origin is always allowed). */
   get corsOrigins() {
-    return (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    return (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   },
   /** Number of reverse proxies in front of the app (1 on Railway/Heroku) so req.ip is correct. */
   get trustProxy() {
@@ -78,7 +81,10 @@ export const config = {
   },
   /** Optional comma-separated list of email domains allowed to sign up (empty = any). */
   get allowedEmailDomains() {
-    return (process.env.ALLOWED_EMAIL_DOMAINS ?? '').split(',').map((s) => s.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
+    return (process.env.ALLOWED_EMAIL_DOMAINS ?? '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase().replace(/^@/, ''))
+      .filter(Boolean);
   },
   get seedOnStart() {
     return process.env.SEED !== 'false';

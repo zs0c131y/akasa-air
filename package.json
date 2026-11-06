@@ -3,15 +3,36 @@
   "version": "1.0.0",
   "private": true,
   "description": "Employee Leave Management System (MERN)",
-  "workspaces": ["shared", "server", "client"],
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
   "scripts": {
     "setup": "npm install && npm run build",
     "build": "npm run build -w client",
     "start": "npm start -w server",
     "dev": "concurrently -n server,client \"npm run dev -w server\" \"npm run dev -w client\"",
     "seed": "npm run seed -w server",
-    "test": "npm test -w shared -w server -w client"
+    "test": "npm test -w shared -w server -w client",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm run format:check && npm test"
   },
-  "devDependencies": { "concurrently": "^9.0.0" },
-  "engines": { "node": ">=20.12" }
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^9.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
 }

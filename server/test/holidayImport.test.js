@@ -13,21 +13,35 @@ describe('normalizeDate', () => {
   ])('reads %s', (input, iso) => expect(normalizeDate(input)).toBe(iso));
 
   it('reads numeric dates day first', () => expect(normalizeDate('03/04/2026')).toBe('2026-04-03'));
-  it.each(['', 'soon', '31/02/2026', '2026-13-01', '10/2026', '2 Foo 2026'])('rejects "%s"', (input) => expect(normalizeDate(input)).toBeNull());
+  it.each(['', 'soon', '31/02/2026', '2026-13-01', '10/2026', '2 Foo 2026'])('rejects "%s"', (input) =>
+    expect(normalizeDate(input)).toBeNull(),
+  );
 });
 
 describe('parseDelimited', () => {
   it('handles commas, tabs and semicolons', () => {
-    expect(parseDelimited('a,b\n1,2').map((r) => r.cells)).toEqual([['a', 'b'], ['1', '2']]);
-    expect(parseDelimited('a\tb\n1\t2').map((r) => r.cells)).toEqual([['a', 'b'], ['1', '2']]);
-    expect(parseDelimited('a;b\n1;2').map((r) => r.cells)).toEqual([['a', 'b'], ['1', '2']]);
+    expect(parseDelimited('a,b\n1,2').map((r) => r.cells)).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ]);
+    expect(parseDelimited('a\tb\n1\t2').map((r) => r.cells)).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ]);
+    expect(parseDelimited('a;b\n1;2').map((r) => r.cells)).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ]);
   });
   it('keeps quoted commas and escaped quotes', () => {
     expect(parseDelimited('"Diwali, day 1","say ""hi"""')[0].cells).toEqual(['Diwali, day 1', 'say "hi"']);
   });
   it('copes with Windows line endings, a BOM and blank lines', () => {
     const rows = parseDelimited('﻿a,b\r\n\r\n1,2\r\n');
-    expect(rows.map((r) => r.cells)).toEqual([['a', 'b'], ['1', '2']]);
+    expect(rows.map((r) => r.cells)).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ]);
   });
 });
 

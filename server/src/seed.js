@@ -40,7 +40,13 @@ export async function seedIfEmpty() {
     });
   }
   const key = await storage.save(SAMPLE_PDF);
-  const doc = (who, name) => ({ key, originalName: name, mimeType: 'application/pdf', size: SAMPLE_PDF.length, uploadedBy: byKey[who]._id });
+  const doc = (who, name) => ({
+    key,
+    originalName: name,
+    mimeType: 'application/pdf',
+    size: SAMPLE_PDF.length,
+    uploadedBy: byKey[who]._id,
+  });
 
   const step = (who, action, from, to, comment, daysAgo = 1) => ({
     at: new Date(Date.now() - daysAgo * 86400000),
@@ -76,33 +82,76 @@ export async function seedIfEmpty() {
   const M = 'PENDING_MANAGER';
   const H = 'PENDING_HOD';
 
-  await make('arjun', 10, 11, 'Cousin\'s wedding in Jaipur', M, []);
+  await make('arjun', 10, 11, "Cousin's wedding in Jaipur", M, []);
   await make('arjun', 20, 25, 'Surgery and recovery for my father', M, [], { docName: 'discharge-summary.pdf' });
-  await make('kavya', 15, 16, 'Passport renewal appointment', 'INFO_REQUESTED',
-    [step('rahul', 'REQUEST_INFO', M, 'INFO_REQUESTED', 'Which day is the appointment? Please confirm so I can plan cover.', 2)], { infoFrom: 'MANAGER' });
-  await make('rohan', 30, 34, 'Family trip to Kerala', H,
-    [step('rahul', 'APPROVE', M, H, 'Fine from my side, pending HOD.', 2)], { docName: 'flight-booking.pdf' });
-  await make('rohan', -20, -19, 'Dental procedure', 'REJECTED',
-    [step('rahul', 'REJECT', M, 'REJECTED', 'Release week, we are short on cover. Please pick another date.', 15)]);
-  await make('sneha', -10, -9, 'Moving house', 'APPROVED', [step('ananya', 'APPROVE', M, 'APPROVED', 'Approved, good luck with the move.', 12)]);
-  await make('sneha', 40, 45, 'Medical treatment', H,
-    [step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 2)], { docName: 'medical-certificate.pdf' });
-  await make('imran', -35, -30, 'Higher studies exam', 'APPROVED', [
-    step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 40),
-    step('hod', 'APPROVE', H, 'APPROVED', 'Approved. All the best.', 38),
-  ], { docName: 'exam-hall-ticket.pdf' });
-  await make('imran', -8, -4, 'Sudden family emergency out of town', 'APPROVED', [
-    step('ananya', 'APPROVE', M, H, 'Approved at manager level, documents to follow.', 7),
-    step('hod', 'APPROVE', H, 'APPROVED', 'Approved. Please send documents on return.', 6),
-  ], { emergency: true });
+  await make(
+    'kavya',
+    15,
+    16,
+    'Passport renewal appointment',
+    'INFO_REQUESTED',
+    [step('rahul', 'REQUEST_INFO', M, 'INFO_REQUESTED', 'Which day is the appointment? Please confirm so I can plan cover.', 2)],
+    { infoFrom: 'MANAGER' },
+  );
+  await make('rohan', 30, 34, 'Family trip to Kerala', H, [step('rahul', 'APPROVE', M, H, 'Fine from my side, pending HOD.', 2)], {
+    docName: 'flight-booking.pdf',
+  });
+  await make('rohan', -20, -19, 'Dental procedure', 'REJECTED', [
+    step('rahul', 'REJECT', M, 'REJECTED', 'Release week, we are short on cover. Please pick another date.', 15),
+  ]);
+  await make('sneha', -10, -9, 'Moving house', 'APPROVED', [
+    step('ananya', 'APPROVE', M, 'APPROVED', 'Approved, good luck with the move.', 12),
+  ]);
+  await make('sneha', 40, 45, 'Medical treatment', H, [step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 2)], {
+    docName: 'medical-certificate.pdf',
+  });
+  await make(
+    'imran',
+    -35,
+    -30,
+    'Higher studies exam',
+    'APPROVED',
+    [
+      step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 40),
+      step('hod', 'APPROVE', H, 'APPROVED', 'Approved. All the best.', 38),
+    ],
+    { docName: 'exam-hall-ticket.pdf' },
+  );
+  await make(
+    'imran',
+    -8,
+    -4,
+    'Sudden family emergency out of town',
+    'APPROVED',
+    [
+      step('ananya', 'APPROVE', M, H, 'Approved at manager level, documents to follow.', 7),
+      step('hod', 'APPROVE', H, 'APPROVED', 'Approved. Please send documents on return.', 6),
+    ],
+    { emergency: true },
+  );
   await make('imran', 50, 51, 'Personal errand', 'CANCELLED', [step('imran', 'CANCEL', M, 'CANCELLED', 'Plans changed.', 1)]);
-  await make('meera', 60, 66, 'Visiting family abroad', 'INFO_REQUESTED', [
-    step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 6),
-    step('hod', 'REQUEST_INFO', H, 'INFO_REQUESTED', 'Please attach the return ticket as well.', 3),
-  ], { docName: 'outbound-ticket.pdf', infoFrom: 'HOD' });
+  await make(
+    'meera',
+    60,
+    66,
+    'Visiting family abroad',
+    'INFO_REQUESTED',
+    [
+      step('ananya', 'APPROVE', M, H, 'Approved at manager level.', 6),
+      step('hod', 'REQUEST_INFO', H, 'INFO_REQUESTED', 'Please attach the return ticket as well.', 3),
+    ],
+    { docName: 'outbound-ticket.pdf', infoFrom: 'HOD' },
+  );
   await make('rahul', 70, 71, 'Annual health check-up', H, [], { start: H });
-  await make('hod', 80, 81, 'Conference travel (personal extension)', 'APPROVED',
-    [step('hod', 'AUTO_APPROVED', 'APPROVED', 'APPROVED', 'HOD leave is auto-approved and flagged for audit.', 4)], { start: 'APPROVED' });
+  await make(
+    'hod',
+    80,
+    81,
+    'Conference travel (personal extension)',
+    'APPROVED',
+    [step('hod', 'AUTO_APPROVED', 'APPROVED', 'APPROVED', 'HOD leave is auto-approved and flagged for audit.', 4)],
+    { start: 'APPROVED' },
+  );
   return true;
 }
 

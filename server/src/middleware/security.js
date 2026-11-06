@@ -61,7 +61,14 @@ export function rejectOperatorKeys(req, _res, next) {
     return Object.keys(v).some((k) => k.includes('$') || k.includes('.') || bad(v[k], depth + 1));
   };
   if (bad(req.body) || bad(req.query)) {
-    return next(new AppError(400, 'BAD_INPUT', 'That request contains characters we cannot accept.', 'Remove special characters like $ and try again.'));
+    return next(
+      new AppError(
+        400,
+        'BAD_INPUT',
+        'That request contains characters we cannot accept.',
+        'Remove special characters like $ and try again.',
+      ),
+    );
   }
   next();
 }
@@ -74,7 +81,17 @@ export function requestLogger(req, res, next) {
   const start = process.hrtime.bigint();
   res.on('finish', () => {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
-    console.log(JSON.stringify({ t: new Date().toISOString(), id: req.id, method: req.method, path: req.originalUrl.split('?')[0], status: res.statusCode, ms: Math.round(ms), user: req.user?.id }));
+    console.log(
+      JSON.stringify({
+        t: new Date().toISOString(),
+        id: req.id,
+        method: req.method,
+        path: req.originalUrl.split('?')[0],
+        status: res.statusCode,
+        ms: Math.round(ms),
+        user: req.user?.id,
+      }),
+    );
   });
   next();
 }

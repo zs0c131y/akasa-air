@@ -2,8 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import {
-  MAX_FILES, MAX_FILE_BYTES, ALLOWED_MIME, leaveBreakdown, absenceDays, isLongLeave, makeLeaveInputSchema,
-  documentRequirementError, excludedSummary, zodFields, LONG_LEAVE_THRESHOLD_DAYS, todayISO,
+  MAX_FILES,
+  MAX_FILE_BYTES,
+  ALLOWED_MIME,
+  leaveBreakdown,
+  absenceDays,
+  isLongLeave,
+  makeLeaveInputSchema,
+  documentRequirementError,
+  excludedSummary,
+  zodFields,
+  LONG_LEAVE_THRESHOLD_DAYS,
+  todayISO,
 } from '@lms/shared';
 import { api } from '../api.js';
 import { Avatar, ErrorBox, FieldError, Notice, PageHeader, Panel, fmtDate } from '../components.jsx';
@@ -26,15 +36,43 @@ export default function ApplyPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.obligations().then(setObligations).catch(() => {});
-    api.holidays().then((r) => setHolidays(r.items)).catch(() => {});
+    api
+      .obligations()
+      .then(setObligations)
+      .catch(() => {});
+    api
+      .holidays()
+      .then((r) => setHolidays(r.items))
+      .catch(() => {});
     if (editing) {
-      api.get(id).then((l) => {
-        setForm({ fromDate: l.fromDate, toDate: l.toDate, reason: l.reason, isEmergency: l.isEmergency });
-        setExistingDocs(l.documents.length);
-      }).catch(setError);
+      api
+        .get(id)
+        .then((l) => {
+          setForm({ fromDate: l.fromDate, toDate: l.toDate, reason: l.reason, isEmergency: l.isEmergency });
+          setExistingDocs(l.documents.length);
+        })
+        .catch(setError);
     }
   }, [id, editing]);
+
+  // Leave left for the year the request starts in.
+  const [balance, setBalance] = useState(null);
+  const year = form.fromDate ? Number(form.fromDate.slice(0, 4)) : null;
+  useEffect(() => {
+    if (!year) return undefined;
+    let live = true;
+    api
+      .balance(year)
+      .then((b) => {
+        if (live) setBalance(b);
+      })
+      .catch(() => {
+        if (live) setBalance(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [year]);
 
   const count = useMemo(() => leaveBreakdown(form.fromDate, form.toDate, holidays), [form.fromDate, form.toDate, holidays]);
   const days = count.days;
@@ -44,7 +82,10 @@ export default function ApplyPage() {
     setChain(null);
     if (!(days > 0)) return undefined;
     const t = setTimeout(() => {
-      api.chain(form.fromDate, form.toDate, id).then(setChain).catch(() => setChain(null));
+      api
+        .chain(form.fromDate, form.toDate, id)
+        .then(setChain)
+        .catch(() => setChain(null));
     }, 250);
     return () => clearTimeout(t);
   }, [form.fromDate, form.toDate, days, id]);
@@ -54,14 +95,24 @@ export default function ApplyPage() {
   const long = isLongLeave(effectiveDays);
   const schema = useMemo(() => makeLeaveInputSchema(holidays), [holidays]);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
-  const blockMsg = obligations && !editing ? (form.isEmergency ? !obligations.canApplyEmergency : !obligations.canApplyNormal) && obligations.message : null;
+  const blockMsg =
+    obligations && !editing
+      ? (form.isEmergency ? !obligations.canApplyEmergency : !obligations.canApplyNormal) && obligations.message
+      : null;
   const needsDocs = long && !form.isEmergency;
   const docCount = existingDocs + (long ? files.length : 0);
-  const inBetween = [count.sundays ? `${count.sundays} Sunday${count.sundays === 1 ? '' : 's'}` : '', count.holidays.length ? `${count.holidays.length} holiday${count.holidays.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+  const inBetween = [
+    count.sundays ? `${count.sundays} Sunday${count.sundays === 1 ? '' : 's'}` : '',
+    count.holidays.length ? `${count.holidays.length} holiday${count.holidays.length === 1 ? '' : 's'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' and ');
   const note = excludedSummary({ sundays: count.sundays, holidays: count.holidays });
 
   // Leave that is not long needs no documents: drop anything picked earlier.
-  useEffect(() => { if (!long && files.length) setFiles([]); }, [long, files.length]);
+  useEffect(() => {
+    if (!long && files.length) setFiles([]);
+  }, [long, files.length]);
 
   const validate = () => {
     const out = {};
@@ -100,28 +151,38 @@ export default function ApplyPage() {
       navigate(`/leaves/${saved.id}`);
     } catch (err) {
       setError(err);
-      setFields(err.fields ?? {});
+      setFields(
+        err.code === 'NOT_ENOUGH_LEAVE'
+          ? { ...(err.fields ?? {}), toDate: 'This is more than the leave you have left.' }
+          : (err.fields ?? {}),
+      );
     } finally {
       setBusy(false);
     }
   };
+  const overBalance = balance && !editing && days > balance.remaining;
 
-
-  const approvalSteps = user.role === 'HOD'
-    ? 'You are the Head of Department, so your own leave is approved as soon as you file it.'
-    : user.role === 'MANAGER'
-      ? 'The HOD reviews it.'
-      : long ? 'Your manager reviews it first, then the HOD gives the final yes.' : 'Your manager reviews it. Leave of up to 3 days in a row needs no one else.';
+  const approvalSteps =
+    user.role === 'HOD'
+      ? 'You are the Head of Department, so your own leave is approved as soon as you file it.'
+      : user.role === 'MANAGER'
+        ? 'The HOD reviews it.'
+        : long
+          ? 'Your manager reviews it first, then the HOD gives the final yes.'
+          : 'Your manager reviews it. Leave of up to 3 days in a row needs no one else.';
   const docsText = !long
     ? 'Not needed. Documents are only taken for leave of more than 3 days in a row.'
     : form.isEmergency
       ? 'Can follow. Send them before you return to work or ask for other leave.'
       : 'Needed. Attach at least one before you submit.';
-  const sentence = days > 0
-    ? (note ? `${note}.` : 'No Sundays or public holidays fall in these dates.')
-    : count.calendarDays > 0
-      ? 'These dates are only Sundays or public holidays, which are never counted. Add a working day.'
-      : 'Pick a start and end date to see the count.';
+  const sentence =
+    days > 0
+      ? note
+        ? `${note}.`
+        : 'No Sundays or public holidays fall in these dates.'
+      : count.calendarDays > 0
+        ? 'These dates are only Sundays or public holidays, which are never counted. Add a working day.'
+        : 'Pick a start and end date to see the count.';
 
   return (
     <section>
@@ -134,53 +195,106 @@ export default function ApplyPage() {
         <form onSubmit={submit} noValidate className="space-y-6 rounded-lg border bg-card p-5 shadow-soft sm:p-6">
           {blockMsg && <ErrorBox error={{ message: blockMsg }} />}
           {obligations?.owed?.length > 0 && (
-            <Notice>You still owe documents for emergency leave: {obligations.owed.map((o) => `${o.fromDate} to ${o.toDate} (due ${o.dueBy})`).join('; ')}. Open that request to upload them.</Notice>
+            <Notice>
+              You still owe documents for emergency leave:{' '}
+              {obligations.owed.map((o) => `${o.fromDate} to ${o.toDate} (due ${o.dueBy})`).join('; ')}. Open that request to upload them.
+            </Notice>
           )}
           {stretch && (
             <Notice>
-              This joins up with your other leave ({stretch.members.map((m) => `${fmtDate(m.fromDate)} to ${fmtDate(m.toDate)}`).join(', ')}), so together it is {stretch.absenceDays} days in a row. Leave of more than 3 days in a row needs a document and the HOD's approval.
+              This joins up with your other leave ({stretch.members.map((m) => `${fmtDate(m.fromDate)} to ${fmtDate(m.toDate)}`).join(', ')}
+              ), so together it is {stretch.absenceDays} days in a row. Leave of more than 3 days in a row needs a document and the HOD's
+              approval.
             </Notice>
           )}
-          {error?.code === 'NO_MANAGER' ? (
-            <Notice>{error.message} {error.hint}</Notice>
-          ) : <ErrorBox error={error} />}
+          {error?.code === 'NO_MANAGER' || error?.code === 'NOT_ENOUGH_LEAVE' ? (
+            <Notice>
+              {error.message} {error.hint}
+            </Notice>
+          ) : (
+            <ErrorBox error={error} />
+          )}
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="fromDate">From</Label>
-              <Input id="fromDate" type="date" value={form.fromDate} min={todayISO()} onChange={set('fromDate')} aria-invalid={Boolean(fields.fromDate)} />
+              <Input
+                id="fromDate"
+                type="date"
+                value={form.fromDate}
+                min={todayISO()}
+                onChange={set('fromDate')}
+                aria-invalid={Boolean(fields.fromDate)}
+              />
               <FieldError msg={fields.fromDate} />
             </div>
             <div>
               <Label htmlFor="toDate">To</Label>
-              <Input id="toDate" type="date" value={form.toDate} min={form.fromDate > todayISO() ? form.fromDate : todayISO()} onChange={set('toDate')} aria-invalid={Boolean(fields.toDate)} />
+              <Input
+                id="toDate"
+                type="date"
+                value={form.toDate}
+                min={form.fromDate > todayISO() ? form.fromDate : todayISO()}
+                onChange={set('toDate')}
+                aria-invalid={Boolean(fields.toDate)}
+              />
               <FieldError msg={fields.toDate} />
             </div>
           </div>
           <div>
             <Label htmlFor="reason">Reason</Label>
-            <Textarea id="reason" rows={3} value={form.reason} onChange={set('reason')} placeholder="For example: cousin's wedding in Jaipur" aria-invalid={Boolean(fields.reason)} />
+            <Textarea
+              id="reason"
+              rows={3}
+              value={form.reason}
+              onChange={set('reason')}
+              placeholder="For example: cousin's wedding in Jaipur"
+              aria-invalid={Boolean(fields.reason)}
+            />
             <FieldError msg={fields.reason} />
           </div>
           {long && (
             <label className="flex cursor-pointer items-start gap-3 rounded-lg border bg-background p-4 transition-colors hover:bg-accent/50">
-              <input type="checkbox" checked={form.isEmergency} onChange={set('isEmergency')} className="mt-0.5 size-5 shrink-0 accent-[hsl(var(--brand))]" />
+              <input
+                type="checkbox"
+                checked={form.isEmergency}
+                onChange={set('isEmergency')}
+                className="mt-0.5 size-5 shrink-0 accent-[hsl(var(--brand))]"
+              />
               <span>
                 <span className="block font-semibold">This is an emergency</span>
-                <span className="block text-sm text-muted-foreground">You can file now and send the documents later, before you return to work or ask for other leave.</span>
+                <span className="block text-sm text-muted-foreground">
+                  You can file now and send the documents later, before you return to work or ask for other leave.
+                </span>
               </span>
             </label>
           )}
           {long && (
             <div>
               <Label htmlFor="docs">Supporting documents{needsDocs ? ' (required)' : ' (can follow)'}</Label>
-              <Input id="docs" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFiles([...e.target.files])} aria-invalid={Boolean(fields.documents)} className="h-auto py-2" />
-              <p className="mt-1.5 text-sm text-muted-foreground">PDF, JPG or PNG, up to 5 MB each, at most {MAX_FILES} files. Leave of more than {LONG_LEAVE_THRESHOLD_DAYS} days in a row needs a document, such as a medical certificate or a travel booking.</p>
-              {editing && existingDocs > 0 && <p className="mt-1 text-sm text-muted-foreground">{existingDocs} document{existingDocs === 1 ? ' is' : 's are'} already attached.</p>}
+              <Input
+                id="docs"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setFiles([...e.target.files])}
+                aria-invalid={Boolean(fields.documents)}
+                className="h-auto py-2"
+              />
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                PDF, JPG or PNG, up to 5 MB each, at most {MAX_FILES} files. Leave of more than {LONG_LEAVE_THRESHOLD_DAYS} days in a row
+                needs a document, such as a medical certificate or a travel booking.
+              </p>
+              {editing && existingDocs > 0 && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {existingDocs} document{existingDocs === 1 ? ' is' : 's are'} already attached.
+                </p>
+              )}
               <FieldError msg={fields.documents} />
             </div>
           )}
           <Button variant="brand" size="lg" disabled={busy || Boolean(blockMsg)} className="w-full sm:w-auto">
-            <Send />{busy ? 'Saving' : editing ? 'Save changes' : 'Submit request'}
+            <Send />
+            {busy ? 'Saving' : editing ? 'Save changes' : 'Submit request'}
           </Button>
         </form>
 
@@ -201,11 +315,40 @@ export default function ApplyPage() {
               </p>
               {ownAway !== days && days > 0 && (
                 <p className="mt-2 text-sm font-medium">
-                  {days} leave day{days === 1 ? '' : 's'}, {ownAway} days away in a row ({inBetween} in between {count.sundays + count.holidays.length === 1 ? 'is' : 'are'} not charged)
+                  {days} leave day{days === 1 ? '' : 's'}, {ownAway} days away in a row ({inBetween} in between{' '}
+                  {count.sundays + count.holidays.length === 1 ? 'is' : 'are'} not charged)
                 </p>
               )}
-              <p className="mt-2 font-mono text-sm">{days > 0 || count.calendarDays > 0 ? `${fmtDate(form.fromDate)} to ${fmtDate(form.toDate)}` : ''}</p>
+              <p className="mt-2 font-mono text-sm">
+                {days > 0 || count.calendarDays > 0 ? `${fmtDate(form.fromDate)} to ${fmtDate(form.toDate)}` : ''}
+              </p>
               <p className="mt-1.5 text-sm text-muted-foreground">{sentence}</p>
+            </div>
+            <div aria-live="polite" className="border-t pt-5 text-sm">
+              <p className="kicker">Leave left{balance ? ` in ${balance.year}` : ''}</p>
+              {balance ? (
+                <>
+                  <p className="mt-1.5">
+                    <span className="num font-display text-2xl">
+                      {balance.remaining} of {balance.allowance}
+                    </span>{' '}
+                    days left this year
+                  </p>
+                  {balance.pending > 0 && (
+                    <p className="mt-1 text-muted-foreground">
+                      {balance.pending} more {balance.pending === 1 ? 'day is' : 'days are'} waiting for an answer.
+                    </p>
+                  )}
+                  {overBalance && (
+                    <p className="mt-2 rounded-md bg-status-amber-bg p-2.5 font-medium text-status-amber-fg">
+                      This request is {days} {days === 1 ? 'day' : 'days'}, and you have {Math.max(balance.remaining, 0)} left. It will not
+                      go through unless the Head of Department raises your allowance first.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-1.5 text-muted-foreground">Checking</p>
+              )}
             </div>
             <dl className="space-y-4 border-t pt-5 text-sm">
               <div>

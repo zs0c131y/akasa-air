@@ -60,3 +60,16 @@ Tick "Emergency leave" to file a long leave without documents. Both approvals ar
 ## Worked examples
 **2-day leave (4 to 5 Dec):** Arjun applies, no document needed. His manager Rahul approves with a comment. Status: `APPROVED`. Two steps.
 **5-day leave (10 to 14 Dec):** Arjun applies. Without a document he is blocked with a friendly message; he attaches a ticket and submits (`PENDING_MANAGER`). Rahul asks "Which dates is the flight?" (`INFO_REQUESTED`). Arjun replies (back to `PENDING_MANAGER`). Rahul approves (`PENDING_HOD`). Priya, the HOD, approves (`APPROVED`).
+
+## Leave allowance
+Everyone gets **30 days a year** to begin with. The HOD can change the default, set a different number for one person, or paste or upload a list (`email,allowance,year`, and a line starting `default` for everyone). A request counts against the year it starts in. Charged days (not Sundays, not holidays) are used when approved and set aside while the request waits for an answer; rejecting, cancelling or editing a request gives the days back. A request that needs more days than are left is stopped with a message that says how many are left.
+
+## Notifications
+Each person has in-app notices (the bell in the header). They are created when:
+- a request is filed (the manager, or the HOD for a manager's own request),
+- a manager approves a long request (the employee is told it is now with the HOD, and the HOD is told it is waiting),
+- a request is approved or rejected (the employee),
+- an approver asks a question (the employee) and the employee replies (the approver),
+- a request is cancelled (the approver it was waiting for).
+
+Emails are sent for the same events only when Mailgun is configured, the person has not switched emails off on their Account page, and their address is real. Addresses ending in `.demo`, `.test`, `.example`, `.invalid`, `.local` or `.localhost`, and `example.com/.org/.net`, are never emailed (add more with `NO_EMAIL_DOMAINS`), so demo accounts cost no sending quota.

@@ -85,7 +85,9 @@ describe('who may act (403)', () => {
     expect(() => run({ status: 'PENDING_HOD' }, 'APPROVE', mgr)).toThrow(expect.objectContaining({ status: 403 }));
   });
   it('only the owner can reply, cancel or edit', () => {
-    expect(() => run({ status: 'INFO_REQUESTED', infoRequestedFrom: 'MANAGER' }, 'REPLY', mgr)).toThrow(expect.objectContaining({ status: 403 }));
+    expect(() => run({ status: 'INFO_REQUESTED', infoRequestedFrom: 'MANAGER' }, 'REPLY', mgr)).toThrow(
+      expect.objectContaining({ status: 403 }),
+    );
     expect(() => run({}, 'CANCEL', mgr)).toThrow(expect.objectContaining({ status: 403 }));
   });
   it('a future approved leave can be cancelled by its owner', () => {

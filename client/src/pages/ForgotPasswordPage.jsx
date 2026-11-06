@@ -43,7 +43,9 @@ export default function ForgotPasswordPage() {
           <MailCheck className="size-8 text-brand" aria-hidden="true" />
           <p role="status">{message}</p>
           <p className="text-sm text-muted-foreground">The link works for a short while. If it does not turn up, check your spam folder.</p>
-          <Button asChild variant="outline"><Link to="/login">Back to sign in</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/login">Back to sign in</Link>
+          </Button>
         </div>
       ) : (
         <>
@@ -51,10 +53,19 @@ export default function ForgotPasswordPage() {
           <form onSubmit={submit} noValidate className="space-y-5">
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(fields.email)} />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={Boolean(fields.email)}
+              />
               <FieldError msg={fields.email} />
             </div>
-            <Button variant="brand" className="w-full" size="lg" disabled={busy}>{busy ? 'Sending' : 'Send the link'}</Button>
+            <Button variant="brand" className="w-full" size="lg" disabled={busy}>
+              {busy ? 'Sending' : 'Send the link'}
+            </Button>
           </form>
         </>
       )}

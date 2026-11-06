@@ -9,7 +9,8 @@ import { config } from '../config.js';
  */
 export const outbox = [];
 
-const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function isMailConfigured() {
   const { apiKey, senderEmail, domain } = config.mailgun;
@@ -81,6 +82,25 @@ export function passwordChangedEmail({ name }) {
   };
 }
 
+export function notificationEmail({ name, title, body, url }) {
+  return {
+    subject: title,
+    text: `Hi ${name},
+
+${title}
+${body}
+
+Open it here: ${url}
+
+You can turn these emails off on your Account page. You will still see the notice in Layover.`,
+    html: shell({
+      preheader: body.slice(0, 90),
+      heading: title,
+      bodyHtml: `<p style="margin:0 0 16px 0;">Hi ${escapeHtml(name)},</p><p style="margin:0 0 20px 0;">${escapeHtml(body)}</p>${button(url, 'Open in Layover')}<p style="margin:0;color:#6b675d;">You can turn these emails off on your Account page. You will still see the notice in Layover.</p>`,
+    }),
+  };
+}
+
 /** Sends one email. Returns { ok, skipped }. Never throws: a mail problem must not break the request that triggered it. */
 export async function sendMail({ to, subject, text, html }, { link } = {}) {
   if (!isMailConfigured()) {
@@ -99,7 +119,10 @@ export async function sendMail({ to, subject, text, html }, { link } = {}) {
   try {
     const res = await fetch(`${baseUrl}/v3/${domain}/messages`, {
       method: 'POST',
-      headers: { Authorization: `Basic ${Buffer.from(`api:${apiKey}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${apiKey}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body: form,
     });
     if (!res.ok) {

@@ -18,6 +18,7 @@ import {
 } from '@lms/shared';
 import { LeaveRequest } from '../models/LeaveRequest.js';
 import { holidaysFor, listHolidays } from './holidayService.js';
+import { assertEnoughLeave } from './allowanceService.js';
 import { AppError, notFound, conflict, validationError } from '../errors.js';
 import { storage, sniffMime, safeFilename } from '../storage/index.js';
 import { allowedActions, applyAction, initialStatus } from '../workflow.js';
@@ -73,7 +74,12 @@ export function serialize(doc, user) {
     chainDays: doc.chainDays ?? doc.days,
     absenceDays: doc.absenceDays ?? null,
     splitFlag: Boolean(doc.splitFlag),
-    joinedWith: (doc.joinedWith ?? []).map((j) => ({ id: j.requestId ? String(j.requestId) : null, fromDate: j.fromDate, toDate: j.toDate, days: j.days })),
+    joinedWith: (doc.joinedWith ?? []).map((j) => ({
+      id: j.requestId ? String(j.requestId) : null,
+      fromDate: j.fromDate,
+      toDate: j.toDate,
+      days: j.days,
+    })),
     excluded: { sundays: doc.excludedSundays ?? 0, holidays: (doc.excludedHolidays ?? []).map((h) => ({ date: h.date, name: h.name })) },
     isLong: doc.isLong,
     reason: doc.reason,
@@ -178,7 +184,13 @@ export async function chainFor(user, fromDate, toDate, excludeId = null) {
   const hi = plusDays(toDate, 31);
   const [others, hols] = await Promise.all([
     LeaveRequest.find(
-      { employeeId: user.id, status: { $in: ACTIVE }, fromDate: { $lte: hi }, toDate: { $gte: lo }, ...(excludeId ? { _id: { $ne: excludeId } } : {}) },
+      {
+        employeeId: user.id,
+        status: { $in: ACTIVE },
+        fromDate: { $lte: hi },
+        toDate: { $gte: lo },
+        ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+      },
       { fromDate: 1, toDate: 1, days: 1 },
     ).lean(),
     holidaysFor(user, { from: lo, to: hi }),
@@ -221,7 +233,13 @@ async function assertMayApply(employeeId, isEmergency, excludeId) {
 export async function getObligations(user) {
   const owed = await owedEmergencyLeaves(user.id);
   return {
-    owed: owed.map((d) => ({ id: String(d._id), fromDate: d.fromDate, toDate: d.toDate, dueBy: nextDay(d.toDate), overdue: nextDay(d.toDate) <= todayISO() })),
+    owed: owed.map((d) => ({
+      id: String(d._id),
+      fromDate: d.fromDate,
+      toDate: d.toDate,
+      dueBy: nextDay(d.toDate),
+      overdue: nextDay(d.toDate) <= todayISO(),
+    })),
     canApplyNormal: !emergencyBlockMessage(owed.length, false),
     canApplyEmergency: !emergencyBlockMessage(owed.length, true),
     message: emergencyBlockMessage(owed.length, false),
@@ -249,7 +267,12 @@ async function assertNoOverlap(employeeId, fromDate, toDate, excludeId) {
 
 export async function createLeave(user, body, files) {
   if (user.role === 'EMPLOYEE' && !user.managerId) {
-    throw new AppError(409, 'NO_MANAGER', 'Your account is not set up for leave yet.', 'The Head of Department needs to choose your manager first. Ask them, and then try again.');
+    throw new AppError(
+      409,
+      'NO_MANAGER',
+      'Your account is not set up for leave yet.',
+      'The Head of Department needs to choose your manager first. Ask them, and then try again.',
+    );
   }
   const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files);
@@ -259,6 +282,7 @@ export async function createLeave(user, body, files) {
   if (docMsg) throw validationError({ documents: docMsg + chainNote(chain) }, docMsg + chainNote(chain));
   await assertNoOverlap(user.id, input.fromDate, input.toDate);
   await assertMayApply(user.id, input.isEmergency);
+  await assertEnoughLeave(user.id, input.fromDate, input.days);
 
   const status = initialStatus(user.role);
   const timeline = [entry(user, 'SUBMITTED', null, status, `${input.isEmergency ? 'Emergency leave. ' : ''}${input.reason}`)];
@@ -304,11 +328,13 @@ export async function listLeaves(user, { scope = 'mine', status, page = 1, pageS
   let sort = { createdAt: -1 };
   if (scope === 'mine') filter = { employeeId: user.id };
   else if (scope === 'queue') {
-    if (user.role === 'EMPLOYEE') throw new AppError(403, 'FORBIDDEN', 'Only managers and the HOD have an approval queue.', 'Use "My requests" instead.');
+    if (user.role === 'EMPLOYEE')
+      throw new AppError(403, 'FORBIDDEN', 'Only managers and the HOD have an approval queue.', 'Use "My requests" instead.');
     filter = user.role === 'HOD' ? { status: 'PENDING_HOD' } : { status: 'PENDING_MANAGER', managerId: user.id };
     sort = { createdAt: 1 };
   } else if (scope === 'all') {
-    if (user.role === 'EMPLOYEE') throw new AppError(403, 'FORBIDDEN', 'Only managers and the HOD can see team requests.', 'Use "My requests" instead.');
+    if (user.role === 'EMPLOYEE')
+      throw new AppError(403, 'FORBIDDEN', 'Only managers and the HOD can see team requests.', 'Use "My requests" instead.');
     filter = visibilityFilter(user);
   } else throw validationError({ scope: 'Scope must be mine, queue or all.' });
 
@@ -319,7 +345,10 @@ export async function listLeaves(user, { scope = 'mine', status, page = 1, pageS
   const size = Math.min(Math.max(Number(pageSize) || 20, 1), 50);
   const pg = Math.max(Number(page) || 1, 1);
   const [items, total] = await Promise.all([
-    LeaveRequest.find(filter).sort(sort).skip((pg - 1) * size).limit(size),
+    LeaveRequest.find(filter)
+      .sort(sort)
+      .skip((pg - 1) * size)
+      .limit(size),
     LeaveRequest.countDocuments(filter),
   ]);
   return { items: items.map((d) => serialize(d, user)), total, page: pg, pageSize: size };
@@ -330,7 +359,11 @@ async function save(doc) {
     await doc.save();
   } catch (err) {
     if (err instanceof mongoose.Error.VersionError) {
-      throw conflict('STALE_REQUEST', 'Someone else just updated this request.', 'Refresh the page to see the latest version, then try again.');
+      throw conflict(
+        'STALE_REQUEST',
+        'Someone else just updated this request.',
+        'Refresh the page to see the latest version, then try again.',
+      );
     }
     throw err;
   }
@@ -341,7 +374,11 @@ async function save(doc) {
 export async function transition(id, user, action, { comment, expectedVersion, files } = {}) {
   const doc = await load(id, user);
   if (expectedVersion != null && Number(expectedVersion) !== doc.__v) {
-    throw conflict('STALE_REQUEST', 'This request changed after you opened it.', 'Refresh the page to see the latest version, then try again.');
+    throw conflict(
+      'STALE_REQUEST',
+      'This request changed after you opened it.',
+      'Refresh the page to see the latest version, then try again.',
+    );
   }
   const prepared = action === 'REPLY' ? prepareFiles(files, doc.documents.length) : [];
   const next = applyAction(toSubject(doc), action, actorOf(user), todayISO());
@@ -352,7 +389,9 @@ export async function transition(id, user, action, { comment, expectedVersion, f
   if (prepared.length) doc.documents.push(...(await storeFiles(prepared, user)));
   doc.status = next.status;
   doc.infoRequestedFrom = next.infoRequestedFrom;
-  const note = prepared.length ? `${comment ?? ''}${comment ? ' ' : ''}(attached ${prepared.length} document${prepared.length > 1 ? 's' : ''})` : comment;
+  const note = prepared.length
+    ? `${comment ?? ''}${comment ? ' ' : ''}(attached ${prepared.length} document${prepared.length > 1 ? 's' : ''})`
+    : comment;
   doc.timeline.push(entry(user, action, from, next.status, note));
   await save(doc);
   return serialize(doc, user);
@@ -371,6 +410,7 @@ export async function updateLeave(id, user, body, files) {
   applyAction(toSubject(doc), 'EDIT', actorOf(user), todayISO());
   await assertNoOverlap(user.id, input.fromDate, input.toDate, doc._id);
   await assertMayApply(user.id, input.isEmergency, doc._id);
+  await assertEnoughLeave(user.id, input.fromDate, input.days, doc._id);
 
   doc.fromDate = input.fromDate;
   doc.toDate = input.toDate;
@@ -398,7 +438,9 @@ export async function attachDocuments(id, user, files) {
   if (!doc.isLong) throw validationError({ documents: NO_DOCS_MSG }, NO_DOCS_MSG);
   applyAction(toSubject(doc), 'ATTACH', actorOf(user), todayISO());
   doc.documents.push(...(await storeFiles(prepared, user)));
-  doc.timeline.push(entry(user, 'ATTACH', doc.status, doc.status, `Sent ${prepared.length} supporting document${prepared.length > 1 ? 's' : ''}.`));
+  doc.timeline.push(
+    entry(user, 'ATTACH', doc.status, doc.status, `Sent ${prepared.length} supporting document${prepared.length > 1 ? 's' : ''}.`),
+  );
   await save(doc);
   return serialize(doc, user);
 }
@@ -411,7 +453,12 @@ export async function previewChain(user, { from, to, excludeId }) {
   const holidays = await holidaysFor(user, { from, to });
   const own = leaveBreakdown(from, to, holidays).days;
   const chain = await chainFor(user, from, to, mongoose.isValidObjectId(excludeId) ? excludeId : null);
-  return { days: own, chainDays: chain.chainDays, absenceDays: chain.absenceDays, members: chain.members.map((m) => ({ fromDate: m.fromDate, toDate: m.toDate, days: m.days })) };
+  return {
+    days: own,
+    chainDays: chain.chainDays,
+    absenceDays: chain.absenceDays,
+    members: chain.members.map((m) => ({ fromDate: m.fromDate, toDate: m.toDate, days: m.days })),
+  };
 }
 
 /**
@@ -430,10 +477,18 @@ export async function calendar(user, { from, to }) {
   if (user.role === 'HOD') who = { status: { $in: ACTIVE } };
   else if (user.role === 'MANAGER') who = { status: { $in: ACTIVE }, $or: [{ managerId: user.id }, { employeeId: user.id }] };
   else {
-    who = { $or: [{ employeeId: user.id, status: { $in: ACTIVE } }, ...(user.managerId ? [{ managerId: user.managerId, status: 'APPROVED' }] : [])] };
+    who = {
+      $or: [
+        { employeeId: user.id, status: { $in: ACTIVE } },
+        ...(user.managerId ? [{ managerId: user.managerId, status: 'APPROVED' }] : []),
+      ],
+    };
   }
   const [rows, holidays] = await Promise.all([
-    LeaveRequest.find({ ...who, fromDate: { $lte: to }, toDate: { $gte: from } }).sort({ fromDate: 1, employeeName: 1 }).limit(500).lean(),
+    LeaveRequest.find({ ...who, fromDate: { $lte: to }, toDate: { $gte: from } })
+      .sort({ fromDate: 1, employeeName: 1 })
+      .limit(500)
+      .lean(),
     listHolidays(user, { from, to }),
   ]);
   return {

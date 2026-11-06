@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
+process.env.LEAVE_ALLOWANCE_DAYS = '1000';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-acct-'));
 const { createApp } = await import('../src/app.js');
 const { seedIfEmpty, DEMO_PASSWORD } = await import('../src/seed.js');
@@ -57,7 +58,12 @@ describe('sign-up without email set up (account is usable straight away)', () =>
 
   it('cannot apply for leave until the HOD chooses a manager', async () => {
     const token = await tokenOf(GOOD.email, GOOD.password);
-    const blocked = await request(app).post('/api/leaves').set('Authorization', `Bearer ${token}`).field('fromDate', '2027-02-02').field('toDate', '2027-02-03').field('reason', 'Family event');
+    const blocked = await request(app)
+      .post('/api/leaves')
+      .set('Authorization', `Bearer ${token}`)
+      .field('fromDate', '2027-02-02')
+      .field('toDate', '2027-02-03')
+      .field('reason', 'Family event');
     expect(blocked.status).toBe(409);
     expect(blocked.body.error.code).toBe('NO_MANAGER');
 
@@ -69,16 +75,32 @@ describe('sign-up without email set up (account is usable straight away)', () =>
     const rahul = people.find((p) => p.name === 'Rahul Mehta');
 
     // only the HOD can do this, and only to a real manager
-    const asEmployee = await request(app).patch(`/api/people/${asha.id}/manager`).set('Authorization', `Bearer ${token}`).send({ managerId: rahul.id });
+    const asEmployee = await request(app)
+      .patch(`/api/people/${asha.id}/manager`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ managerId: rahul.id });
     expect(asEmployee.status).toBe(403);
-    const notManager = await request(app).patch(`/api/people/${asha.id}/manager`).set('Authorization', `Bearer ${hod}`).send({ managerId: asha.id });
+    const notManager = await request(app)
+      .patch(`/api/people/${asha.id}/manager`)
+      .set('Authorization', `Bearer ${hod}`)
+      .send({ managerId: asha.id });
     expect(notManager.status).toBe(400);
-    const ok = await request(app).patch(`/api/people/${asha.id}/manager`).set('Authorization', `Bearer ${hod}`).send({ managerId: rahul.id });
+    const ok = await request(app)
+      .patch(`/api/people/${asha.id}/manager`)
+      .set('Authorization', `Bearer ${hod}`)
+      .send({ managerId: rahul.id });
     expect(ok.status).toBe(200);
 
-    const now = await request(app).post('/api/leaves').set('Authorization', `Bearer ${token}`).field('fromDate', '2027-02-02').field('toDate', '2027-02-03').field('reason', 'Family event');
+    const now = await request(app)
+      .post('/api/leaves')
+      .set('Authorization', `Bearer ${token}`)
+      .field('fromDate', '2027-02-02')
+      .field('toDate', '2027-02-03')
+      .field('reason', 'Family event');
     expect(now.status).toBe(201);
-    const queue = await request(app).get('/api/leaves?scope=queue').set('Authorization', `Bearer ${await tokenOf('rahul.mehta@akasa.demo')}`);
+    const queue = await request(app)
+      .get('/api/leaves?scope=queue')
+      .set('Authorization', `Bearer ${await tokenOf('rahul.mehta@akasa.demo')}`);
     expect(queue.body.items.some((l) => l.employeeName === 'Asha Menon')).toBe(true);
   });
 
@@ -87,18 +109,26 @@ describe('sign-up without email set up (account is usable straight away)', () =>
     const people = (await request(app).get('/api/people').set('Authorization', `Bearer ${hod}`)).body.items;
     const asha = people.find((p) => p.email === GOOD.email);
     const rahul = people.find((p) => p.name === 'Rahul Mehta');
-    expect((await request(app).patch(`/api/people/${rahul.id}/role`).set('Authorization', `Bearer ${hod}`).send({ role: 'EMPLOYEE' })).status).toBe(409);
+    expect(
+      (await request(app).patch(`/api/people/${rahul.id}/role`).set('Authorization', `Bearer ${hod}`).send({ role: 'EMPLOYEE' })).status,
+    ).toBe(409);
     const up = await request(app).patch(`/api/people/${asha.id}/role`).set('Authorization', `Bearer ${hod}`).send({ role: 'MANAGER' });
     expect(up.status).toBe(200);
     expect(up.body.role).toBe('MANAGER');
-    expect((await request(app).patch(`/api/people/${asha.id}/role`).set('Authorization', `Bearer ${hod}`).send({ role: 'HOD' })).status).toBe(400);
+    expect(
+      (await request(app).patch(`/api/people/${asha.id}/role`).set('Authorization', `Bearer ${hod}`).send({ role: 'HOD' })).status,
+    ).toBe(400);
   });
 
   it('shows the HOD how many people are waiting', async () => {
     await post('/api/auth/signup', { name: 'Dev Patel', email: 'dev.patel@akasa.demo', password: 'Runway2026' });
-    const stats = await request(app).get('/api/stats').set('Authorization', `Bearer ${await tokenOf('priya.nair@akasa.demo')}`);
+    const stats = await request(app)
+      .get('/api/stats')
+      .set('Authorization', `Bearer ${await tokenOf('priya.nair@akasa.demo')}`);
     expect(stats.body.awaitingSetup).toBeGreaterThanOrEqual(1);
-    const mgr = await request(app).get('/api/stats').set('Authorization', `Bearer ${await tokenOf('rahul.mehta@akasa.demo')}`);
+    const mgr = await request(app)
+      .get('/api/stats')
+      .set('Authorization', `Bearer ${await tokenOf('rahul.mehta@akasa.demo')}`);
     expect(mgr.body.awaitingSetup).toBeUndefined();
   });
 });
@@ -109,10 +139,13 @@ describe('sign-up with email confirmation (Mailgun configured)', () => {
     process.env.MAILGUN_API_KEY = 'key-test';
     process.env.FROM_EMAIL = 'noreply@mg.example.test';
     process.env.APP_URL = 'https://layover.example.test';
-    vi.stubGlobal('fetch', vi.fn(async (_url, opts) => {
-      sent.push(Object.fromEntries(new URLSearchParams(opts.body)));
-      return { ok: true };
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, opts) => {
+        sent.push(Object.fromEntries(new URLSearchParams(opts.body)));
+        return { ok: true };
+      }),
+    );
   });
   afterAll(() => {
     delete process.env.MAILGUN_API_KEY;
@@ -158,10 +191,13 @@ describe('forgot and reset password', () => {
     process.env.MAILGUN_API_KEY = 'key-test';
     process.env.FROM_EMAIL = 'noreply@mg.example.test';
     process.env.APP_URL = 'https://layover.example.test';
-    vi.stubGlobal('fetch', vi.fn(async (_url, opts) => {
-      sent.push(Object.fromEntries(new URLSearchParams(opts.body)));
-      return { ok: true };
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, opts) => {
+        sent.push(Object.fromEntries(new URLSearchParams(opts.body)));
+        return { ok: true };
+      }),
+    );
   });
   afterAll(() => {
     delete process.env.MAILGUN_API_KEY;

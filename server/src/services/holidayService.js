@@ -51,7 +51,13 @@ export async function addHoliday({ date, name, location }, user) {
     return pub(await Holiday.create({ date: iso, name: clean, location: place.location, addedBy: user.name }));
   } catch (err) {
     if (err?.code === 11000) {
-      throw new AppError(409, 'HOLIDAY_EXISTS', 'That date is already a holiday for this location.', 'Remove the existing entry first if you want to rename it.', { date: 'Already listed.' });
+      throw new AppError(
+        409,
+        'HOLIDAY_EXISTS',
+        'That date is already a holiday for this location.',
+        'Remove the existing entry first if you want to rename it.',
+        { date: 'Already listed.' },
+      );
     }
     throw err;
   }
@@ -87,9 +93,24 @@ export async function importHolidays(text, { apply = false } = {}, user) {
     const place = await resolveLocation(r.location);
     let status = 'new';
     let message = '';
-    if (iso === null) { status = 'error'; message = `"${r.date}" is not a date we can read. Try 2026-10-02 or 02/10/2026.`; } else if (name.length < 2) { status = 'error'; message = 'This line has no holiday name.'; } else if (name.length > 80) { status = 'error'; message = 'The name is longer than 80 characters.'; } else if (place.error) { status = 'error'; message = place.error; } else {
+    if (iso === null) {
+      status = 'error';
+      message = `"${r.date}" is not a date we can read. Try 2026-10-02 or 02/10/2026.`;
+    } else if (name.length < 2) {
+      status = 'error';
+      message = 'This line has no holiday name.';
+    } else if (name.length > 80) {
+      status = 'error';
+      message = 'The name is longer than 80 characters.';
+    } else if (place.error) {
+      status = 'error';
+      message = place.error;
+    } else {
       const key = `${iso}|${place.location ?? ''}`;
-      if (existing.has(key) || seen.has(key)) { status = 'duplicate'; message = 'Already in the calendar, so it will be skipped.'; }
+      if (existing.has(key) || seen.has(key)) {
+        status = 'duplicate';
+        message = 'Already in the calendar, so it will be skipped.';
+      }
       seen.add(key);
     }
     rows.push({ line: r.line, date: iso ?? r.date, name, location: place.location ?? null, status, message });
@@ -101,7 +122,9 @@ export async function importHolidays(text, { apply = false } = {}, user) {
   };
   let applied = false;
   if (apply && summary.errors === 0 && summary.new > 0) {
-    await Holiday.insertMany(rows.filter((r) => r.status === 'new').map((r) => ({ date: r.date, name: r.name, location: r.location, addedBy: user.name })));
+    await Holiday.insertMany(
+      rows.filter((r) => r.status === 'new').map((r) => ({ date: r.date, name: r.name, location: r.location, addedBy: user.name })),
+    );
     applied = true;
   }
   return { applied, summary, rows };
@@ -123,8 +146,10 @@ export async function listLocations() {
 
 export async function addLocation(name) {
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean.length < 2 || clean.length > 60) throw validationError({ name: 'Please give the location a name of 2 to 60 characters, for example "Bengaluru".' });
-  if (NATIONAL_WORDS.includes(clean.toLowerCase())) throw validationError({ name: `"${clean}" is reserved for holidays that apply everywhere.` });
+  if (clean.length < 2 || clean.length > 60)
+    throw validationError({ name: 'Please give the location a name of 2 to 60 characters, for example "Bengaluru".' });
+  if (NATIONAL_WORDS.includes(clean.toLowerCase()))
+    throw validationError({ name: `"${clean}" is reserved for holidays that apply everywhere.` });
   try {
     const l = await Location.create({ name: clean });
     return { id: String(l._id), name: l.name, people: 0, holidays: 0 };
@@ -139,14 +164,21 @@ export async function removeLocation(id) {
   if (!l) throw new AppError(404, 'NOT_FOUND', 'We could not find that location.');
   const [people, holidays] = await Promise.all([User.countDocuments({ location: l.name }), Holiday.countDocuments({ location: l.name })]);
   if (people > 0 || holidays > 0) {
-    throw new AppError(409, 'LOCATION_IN_USE', `${l.name} still has ${people} ${people === 1 ? 'person' : 'people'} and ${holidays} holiday${holidays === 1 ? '' : 's'}.`, 'Move the people to another location and remove its holidays first.');
+    throw new AppError(
+      409,
+      'LOCATION_IN_USE',
+      `${l.name} still has ${people} ${people === 1 ? 'person' : 'people'} and ${holidays} holiday${holidays === 1 ? '' : 's'}.`,
+      'Move the people to another location and remove its holidays first.',
+    );
   }
   await l.deleteOne();
   return { id: String(l._id), name: l.name };
 }
 
 export async function listPeople() {
-  const users = await User.find({}, { name: 1, email: 1, role: 1, location: 1, managerId: 1, emailVerified: 1, createdAt: 1 }).sort({ createdAt: -1 }).lean();
+  const users = await User.find({}, { name: 1, email: 1, role: 1, location: 1, managerId: 1, emailVerified: 1, createdAt: 1 })
+    .sort({ createdAt: -1 })
+    .lean();
   const names = Object.fromEntries(users.map((u) => [String(u._id), u.name]));
   const order = { HOD: 0, MANAGER: 1, EMPLOYEE: 2 };
   return users
@@ -157,7 +189,7 @@ export async function listPeople() {
       role: u.role,
       location: u.location ?? null,
       managerId: u.managerId ? String(u.managerId) : null,
-      managerName: u.managerId ? names[String(u.managerId)] ?? null : null,
+      managerName: u.managerId ? (names[String(u.managerId)] ?? null) : null,
       emailVerified: u.emailVerified !== false,
       // New sign-ups appear first, until the HOD gives them a manager.
       needsSetup: u.role === 'EMPLOYEE' && !u.managerId,
@@ -169,7 +201,8 @@ export async function listPeople() {
 export async function setPersonManager(id, managerId) {
   const user = await User.findById(id).catch(() => null);
   if (!user) throw new AppError(404, 'NOT_FOUND', 'We could not find that person.');
-  if (user.role !== 'EMPLOYEE') throw validationError({ managerId: 'Only employees have a manager chosen here. Managers report to the HOD.' });
+  if (user.role !== 'EMPLOYEE')
+    throw validationError({ managerId: 'Only employees have a manager chosen here. Managers report to the HOD.' });
   const boss = await User.findOne({ _id: managerId, role: 'MANAGER' }).catch(() => null);
   if (!boss) throw validationError({ managerId: 'Please choose one of the managers.' });
   user.managerId = boss._id;
@@ -191,7 +224,13 @@ export async function setPersonRole(id, role) {
     user.managerId = hod?._id ?? null;
   } else {
     const reports = await User.countDocuments({ managerId: user._id });
-    if (reports > 0) throw new AppError(409, 'HAS_REPORTS', `${user.name} still has ${reports} ${reports === 1 ? 'person' : 'people'} reporting to them.`, 'Give those people another manager first.');
+    if (reports > 0)
+      throw new AppError(
+        409,
+        'HAS_REPORTS',
+        `${user.name} still has ${reports} ${reports === 1 ? 'person' : 'people'} reporting to them.`,
+        'Give those people another manager first.',
+      );
     user.role = 'EMPLOYEE';
     user.managerId = null;
   }
@@ -217,8 +256,16 @@ export async function setPersonLocation(id, rawLocation) {
 
 /** The default locations and the fixed-date holidays that go with them, created once. */
 const DEFAULT_LOCATIONS = ['Bengaluru', 'Mumbai', 'Delhi'];
-const FIXED_NATIONAL = [['01-26', 'Republic Day'], ['08-15', 'Independence Day'], ['10-02', 'Gandhi Jayanti'], ['12-25', 'Christmas Day']];
-const FIXED_LOCAL = [['Bengaluru', '11-01', 'Kannada Rajyotsava'], ['Mumbai', '05-01', 'Maharashtra Day']];
+const FIXED_NATIONAL = [
+  ['01-26', 'Republic Day'],
+  ['08-15', 'Independence Day'],
+  ['10-02', 'Gandhi Jayanti'],
+  ['12-25', 'Christmas Day'],
+];
+const FIXED_LOCAL = [
+  ['Bengaluru', '11-01', 'Kannada Rajyotsava'],
+  ['Mumbai', '05-01', 'Maharashtra Day'],
+];
 
 export async function seedLocationsIfEmpty() {
   if ((await Location.countDocuments()) > 0) return false;

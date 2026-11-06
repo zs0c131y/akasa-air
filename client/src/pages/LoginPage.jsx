@@ -10,19 +10,28 @@ import { Input, Label } from '../ui/input.jsx';
 
 const PASSWORD = 'Password@123';
 const DEMO_GROUPS = [
-  ['Head of Department', [['Priya Nair', 'priya.nair', 'Gives the final yes on long leave. Sees every request, the audit log and the holiday list.']]],
-  ['Managers', [
-    ['Rahul Mehta', 'rahul.mehta', 'Has requests from his team waiting for a decision.'],
-    ['Ananya Iyer', 'ananya.iyer', 'Has approved some requests and passed others on to the HOD.'],
-  ]],
-  ['Employees', [
-    ['Arjun Sharma', 'arjun.sharma', 'Has two requests waiting on a manager.'],
-    ['Kavya Reddy', 'kavya.reddy', 'Was asked for more information and can reply.'],
-    ['Rohan Das', 'rohan.das', 'Has long leave waiting on the HOD.'],
-    ['Sneha Kulkarni', 'sneha.kulkarni', 'Has one request approved and one at the HOD.'],
-    ['Imran Khan', 'imran.khan', 'Filed emergency leave and still owes the documents.'],
-    ['Meera Joshi', 'meera.joshi', 'The HOD asked her for a return ticket.'],
-  ]],
+  [
+    'Head of Department',
+    [['Priya Nair', 'priya.nair', 'Gives the final yes on long leave. Sees every request, the audit log and the holiday list.']],
+  ],
+  [
+    'Managers',
+    [
+      ['Rahul Mehta', 'rahul.mehta', 'Has requests from his team waiting for a decision.'],
+      ['Ananya Iyer', 'ananya.iyer', 'Has approved some requests and passed others on to the HOD.'],
+    ],
+  ],
+  [
+    'Employees',
+    [
+      ['Arjun Sharma', 'arjun.sharma', 'Has two requests waiting on a manager.'],
+      ['Kavya Reddy', 'kavya.reddy', 'Was asked for more information and can reply.'],
+      ['Rohan Das', 'rohan.das', 'Has long leave waiting on the HOD.'],
+      ['Sneha Kulkarni', 'sneha.kulkarni', 'Has one request approved and one at the HOD.'],
+      ['Imran Khan', 'imran.khan', 'Filed emergency leave and still owes the documents.'],
+      ['Meera Joshi', 'meera.joshi', 'The HOD asked her for a return ticket.'],
+    ],
+  ],
 ];
 
 export default function LoginPage() {
@@ -59,7 +68,10 @@ export default function LoginPage() {
   const submit = (e) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setError({ message: 'Enter your email and password to sign in.', hint: 'No account yet? Pick a person from the list below instead.' });
+      setError({
+        message: 'Enter your email and password to sign in.',
+        hint: 'No account yet? Pick a person from the list below instead.',
+      });
       return;
     }
     signIn(email, password);
@@ -69,7 +81,9 @@ export default function LoginPage() {
     <div className="min-h-screen">
       <header className="border-b">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="rounded-md" aria-label="Layover by Akasa Air, home"><Brand /></Link>
+          <Link to="/" className="rounded-md" aria-label="Layover by Akasa Air, home">
+            <Brand />
+          </Link>
           <ThemeToggle />
         </div>
       </header>
@@ -86,34 +100,73 @@ export default function LoginPage() {
               <ErrorBox error={error} className="mb-5" />
               {error?.code === 'EMAIL_NOT_VERIFIED' && (
                 <div className="-mt-2 mb-5">
-                  <Button type="button" variant="outline" onClick={resend}>Send it again</Button>
-                  {resent && <p role="status" className="mt-3 text-sm font-medium text-status-green-fg">{resent}</p>}
+                  <Button type="button" variant="outline" onClick={resend}>
+                    Send it again
+                  </Button>
+                  {resent && (
+                    <p role="status" className="mt-3 text-sm font-medium text-status-green-fg">
+                      {resent}
+                    </p>
+                  )}
                 </div>
               )}
               <form onSubmit={submit} noValidate className="space-y-5">
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(error?.fields?.email)} />
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-invalid={Boolean(error?.fields?.email)}
+                  />
                   <FieldError msg={error?.fields?.email} />
                 </div>
                 <div>
                   <div className="mb-1.5 flex items-baseline justify-between gap-3">
-                    <Label htmlFor="password" className="mb-0">Password</Label>
-                    <Link to="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-medium text-brand underline-offset-4 hover:underline">Forgot your password?</Link>
+                    <Label htmlFor="password" className="mb-0">
+                      Password
+                    </Label>
+                    <Link
+                      to="/forgot-password"
+                      className="inline-flex min-h-11 items-center text-sm font-medium text-brand underline-offset-4 hover:underline"
+                    >
+                      Forgot your password?
+                    </Link>
                   </div>
-                  <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(error?.fields?.password)} />
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-invalid={Boolean(error?.fields?.password)}
+                  />
                   <FieldError msg={error?.fields?.password} />
                 </div>
-                <Button variant="brand" className="w-full" size="lg" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</Button>
+                <Button variant="brand" className="w-full" size="lg" disabled={busy}>
+                  {busy ? 'Signing in' : 'Sign in'}
+                </Button>
               </form>
-              <p className="mt-5 text-sm text-muted-foreground">New here? <Link to="/signup" className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4">Create an account</Link></p>
+              <p className="mt-5 text-sm text-muted-foreground">
+                New here?{' '}
+                <Link to="/signup" className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4">
+                  Create an account
+                </Link>
+              </p>
             </div>
           </div>
 
           <section aria-labelledby="demo-title">
             <p className="kicker mb-2.5">Or try the demo</p>
-            <h2 id="demo-title" className="font-display text-2xl leading-tight sm:text-3xl">Pick a person to sign in as</h2>
-            <p className="mt-2.5 max-w-xl text-muted-foreground">One click, no password. Each person has their own requests, so you can follow a request from the employee to the manager to the HOD.</p>
+            <h2 id="demo-title" className="font-display text-2xl leading-tight sm:text-3xl">
+              Pick a person to sign in as
+            </h2>
+            <p className="mt-2.5 max-w-xl text-muted-foreground">
+              One click, no password. Each person has their own requests, so you can follow a request from the employee to the manager to
+              the HOD.
+            </p>
             <div className="mt-7 space-y-7">
               {DEMO_GROUPS.map(([group, people]) => (
                 <div key={group}>
@@ -132,7 +185,10 @@ export default function LoginPage() {
                             <span className="block font-semibold">{name}</span>
                             <span className="mt-0.5 block text-sm text-muted-foreground">{note}</span>
                           </span>
-                          <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden="true" />
+                          <ArrowRight
+                            className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+                            aria-hidden="true"
+                          />
                         </button>
                       </li>
                     ))}

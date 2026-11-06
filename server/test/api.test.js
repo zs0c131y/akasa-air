@@ -7,6 +7,7 @@ import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { todayISO, parseISODate, countLeaveDays, leaveBreakdown } from '@lms/shared';
 
+process.env.LEAVE_ALLOWANCE_DAYS = '1000';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-test-'));
 const { createApp } = await import('../src/app.js');
 const { seedIfEmpty, DEMO_PASSWORD } = await import('../src/seed.js');
@@ -42,8 +43,12 @@ beforeAll(async () => {
   await seedIfEmpty();
   app = createApp();
   const emails = {
-    hod: 'priya.nair@akasa.demo', rahul: 'rahul.mehta@akasa.demo', ananya: 'ananya.iyer@akasa.demo',
-    arjun: 'arjun.sharma@akasa.demo', sneha: 'sneha.kulkarni@akasa.demo', kavya: 'kavya.reddy@akasa.demo',
+    hod: 'priya.nair@akasa.demo',
+    rahul: 'rahul.mehta@akasa.demo',
+    ananya: 'ananya.iyer@akasa.demo',
+    arjun: 'arjun.sharma@akasa.demo',
+    sneha: 'sneha.kulkarni@akasa.demo',
+    kavya: 'kavya.reddy@akasa.demo',
   };
   for (const [k, e] of Object.entries(emails)) tokens[k] = await login(e);
   // clear seeded requests so date ranges in tests never collide
@@ -117,7 +122,11 @@ describe('info request loop', () => {
     expect(q.body.status).toBe('INFO_REQUESTED');
     const empty = await request(app).post(`/api/leaves/${id}/reply`).set(as('arjun')).field('message', '');
     expect(empty.status).toBe(400);
-    const rep = await request(app).post(`/api/leaves/${id}/reply`).set(as('arjun')).field('message', 'City clinic').attach('documents', PDF, 'slip.pdf');
+    const rep = await request(app)
+      .post(`/api/leaves/${id}/reply`)
+      .set(as('arjun'))
+      .field('message', 'City clinic')
+      .attach('documents', PDF, 'slip.pdf');
     expect(rep.body.status).toBe('PENDING_MANAGER');
     expect(rep.body.documents).toHaveLength(1);
   });
@@ -162,12 +171,19 @@ describe('validation', () => {
     const clash = await submit('arjun', { fromDate: day(101), toDate: day(102), reason: 'Personal work' });
     expect(clash.status).toBe(409);
     expect(clash.body.error.code).toBe('OVERLAPPING_LEAVE');
-    const exe = await submit('arjun', { fromDate: day(110), toDate: day(114), reason: 'Family trip' }, [{ buffer: Buffer.from('MZ not a pdf'), name: 'x.pdf' }]);
+    const exe = await submit('arjun', { fromDate: day(110), toDate: day(114), reason: 'Family trip' }, [
+      { buffer: Buffer.from('MZ not a pdf'), name: 'x.pdf' },
+    ]);
     expect(exe.status).toBe(400);
   });
   it('employee can edit and cancel while pending', async () => {
     const r = await submit('arjun', { fromDate: day(120), toDate: day(120), reason: 'Personal work' });
-    const e = await request(app).patch(`/api/leaves/${r.body.id}`).set(as('arjun')).field('fromDate', day(120)).field('toDate', day(121)).field('reason', 'Personal work, extended');
+    const e = await request(app)
+      .patch(`/api/leaves/${r.body.id}`)
+      .set(as('arjun'))
+      .field('fromDate', day(120))
+      .field('toDate', day(121))
+      .field('reason', 'Personal work, extended');
     expect(e.status).toBe(200);
     expect(e.body.days).toBe(2);
     const c = await request(app).post(`/api/leaves/${r.body.id}/cancel`).set(as('arjun')).send({});
@@ -182,7 +198,10 @@ describe('validation', () => {
   });
   it('stale version is rejected (optimistic locking)', async () => {
     const r = await submit('arjun', { fromDate: day(150), toDate: day(150), reason: 'Personal work' });
-    const stale = await request(app).post(`/api/leaves/${r.body.id}/approve`).set(as('rahul')).send({ version: r.body.version + 5 });
+    const stale = await request(app)
+      .post(`/api/leaves/${r.body.id}/approve`)
+      .set(as('rahul'))
+      .send({ version: r.body.version + 5 });
     expect(stale.status).toBe(409);
     expect(stale.body.error.code).toBe('STALE_REQUEST');
   });
@@ -201,13 +220,20 @@ describe('emergency leave', () => {
     const e2 = await submit('sneha', { fromDate: day(220), toDate: day(224), reason: 'Another emergency', isEmergency: 'true' });
     expect(e2.status).toBe(201);
     // now blocked from everything, emergency included
-    expect((await submit('sneha', { fromDate: day(230), toDate: day(234), reason: 'Third emergency', isEmergency: 'true' })).status).toBe(409);
-    expect((await request(app).get('/api/leaves/obligations').set(as('sneha'))).body).toMatchObject({ canApplyNormal: false, canApplyEmergency: false });
+    expect((await submit('sneha', { fromDate: day(230), toDate: day(234), reason: 'Third emergency', isEmergency: 'true' })).status).toBe(
+      409,
+    );
+    expect((await request(app).get('/api/leaves/obligations').set(as('sneha'))).body).toMatchObject({
+      canApplyNormal: false,
+      canApplyEmergency: false,
+    });
     // sending documents for one request lifts the block for emergencies again
     const sent = await request(app).post(`/api/leaves/${e1.body.id}/documents`).set(as('sneha')).attach('documents', PDF, 'proof.pdf');
     expect(sent.status).toBe(200);
     expect(sent.body.documentsPending).toBe(false);
-    expect((await submit('sneha', { fromDate: day(230), toDate: day(234), reason: 'Third emergency', isEmergency: 'true' })).status).toBe(201);
+    expect((await submit('sneha', { fromDate: day(230), toDate: day(234), reason: 'Third emergency', isEmergency: 'true' })).status).toBe(
+      201,
+    );
   });
   it('a non-emergency leave over 3 days still needs documents', async () => {
     const r = await submit('arjun', { fromDate: day(300), toDate: day(305), reason: 'Holiday trip' });
@@ -384,14 +410,19 @@ describe('location calendars and bulk import', () => {
       const again = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv, apply: true });
       expect(again.body).toMatchObject({ applied: false, summary: { new: 0, duplicate: 2, errors: 0 } });
       const [y, m, dd] = day(410).split('-');
-      const dmy = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv: `${dd}/${m}/${y};Semicolon Day;National`, apply: true });
+      const dmy = await request(app)
+        .post('/api/holidays/import')
+        .set(as('hod'))
+        .send({ csv: `${dd}/${m}/${y};Semicolon Day;National`, apply: true });
       expect(dmy.body.applied).toBe(true);
       const list = await request(app).get('/api/holidays?all=true').set(as('hod'));
-      expect(list.body.items).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'Import One', location: null }),
-        expect.objectContaining({ name: 'Import Two', location: 'Mumbai' }),
-        expect.objectContaining({ name: 'Semicolon Day', date: day(410), location: null }),
-      ]));
+      expect(list.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Import One', location: null }),
+          expect.objectContaining({ name: 'Import Two', location: 'Mumbai' }),
+          expect.objectContaining({ name: 'Semicolon Day', date: day(410), location: null }),
+        ]),
+      );
     });
     it('asks for something to import', async () => {
       const r = await request(app).post('/api/holidays/import').set(as('hod')).send({ csv: '   ' });
@@ -417,7 +448,7 @@ describe('team calendar', () => {
     expect(names(ananya)).not.toContain('Arjun Sharma');
   });
 
-  it('an employee sees their own requests, never another team\'s, and no reasons', async () => {
+  it("an employee sees their own requests, never another team's, and no reasons", async () => {
     const arjun = await request(app).get(`/api/leaves/calendar?${q}`).set(as('arjun'));
     const mine = arjun.body.items.find((i) => i.employeeName === 'Arjun Sharma');
     expect(mine).toMatchObject({ mine: true, status: 'PENDING_MANAGER' });
@@ -445,8 +476,20 @@ describe('team calendar', () => {
   });
 
   it('asks for a sensible range', async () => {
-    expect((await request(app).get(`/api/leaves/calendar?from=${day(5)}&to=${day(1)}`).set(as('hod'))).status).toBe(400);
-    expect((await request(app).get(`/api/leaves/calendar?from=${day(1)}&to=${day(200)}`).set(as('hod'))).status).toBe(400);
+    expect(
+      (
+        await request(app)
+          .get(`/api/leaves/calendar?from=${day(5)}&to=${day(1)}`)
+          .set(as('hod'))
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(app)
+          .get(`/api/leaves/calendar?from=${day(1)}&to=${day(200)}`)
+          .set(as('hod'))
+      ).status,
+    ).toBe(400);
     expect((await request(app).get('/api/leaves/calendar').set(as('hod'))).status).toBe(400);
     expect((await request(app).get(`/api/leaves/calendar?${q}`)).status).toBe(401);
   });
@@ -526,7 +569,9 @@ describe('leave in a row', () => {
   });
 
   it('leave that is far apart does not join up', async () => {
-    const far = await request(app).get(`/api/leaves/chain?from=${day(280)}&to=${day(281)}`).set(as('arjun'));
+    const far = await request(app)
+      .get(`/api/leaves/chain?from=${day(280)}&to=${day(281)}`)
+      .set(as('arjun'));
     expect(far.body.members).toEqual([]);
     expect(far.body.chainDays).toBe(far.body.days);
   });

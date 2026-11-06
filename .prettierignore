@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+package-lock.json
+*.md
+*.svg
+client/public
+coverage
+server.log
+dev.log
+.env*

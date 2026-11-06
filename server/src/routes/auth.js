@@ -8,17 +8,28 @@ import { requireAuth, startSession, rotateSession, endSession } from '../middlew
 import { audit } from '../services/auditService.js';
 import { signupSchema, forgotSchema, resetSchema, changePasswordSchema, zodFields } from '@lms/shared';
 import { validationError } from '../errors.js';
-import { changePassword, checkResetToken, confirmEmail, requestReset, resendVerification, resetPassword, signUp } from '../services/accountService.js';
+import {
+  changePassword,
+  checkResetToken,
+  confirmEmail,
+  requestReset,
+  resendVerification,
+  resetPassword,
+  signUp,
+} from '../services/accountService.js';
 import { isMailConfigured } from '../services/mail.js';
+import { balanceFor } from '../services/allowanceService.js';
 
 const makeLoginLimiter = () =>
   rateLimit({
-  windowMs: 10 * 60 * 1000,
-  limit: () => config.loginRateMax,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (_req, _res, next) =>
-    next(new AppError(429, 'TOO_MANY_REQUESTS', 'Too many sign-in attempts from this device.', 'Please wait a few minutes and try again.')),
+    windowMs: 10 * 60 * 1000,
+    limit: () => config.loginRateMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, _res, next) =>
+      next(
+        new AppError(429, 'TOO_MANY_REQUESTS', 'Too many sign-in attempts from this device.', 'Please wait a few minutes and try again.'),
+      ),
   });
 
 /** A limiter for the account endpoints, one set per app instance like the sign-in limiter. */
@@ -37,7 +48,24 @@ const parse = (schema, body) => {
   return r.data;
 };
 
-const publicUser = (u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, location: u.location ?? null });
+const publicUser = (u) => ({
+  id: String(u._id),
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  location: u.location ?? null,
+  employeeCode: u.employeeCode ?? null,
+  department: u.department ?? null,
+  joinedAt: u.createdAt ?? null,
+  emailVerified: u.emailVerified !== false,
+  emailNotifications: u.emailNotifications !== false,
+});
+
+/** Everything the profile and account menu show: the basics plus who you report to and your leave balance. */
+async function fullProfile(u) {
+  const boss = u.managerId ? await User.findById(u.managerId, { name: 1, role: 1 }).lean() : null;
+  return { ...publicUser(u), managerName: boss?.name ?? null, balance: await balanceFor(u._id) };
+}
 const asActor = (u) => ({ id: String(u._id), name: u.name, role: u.role });
 
 /** Builds the auth router (its sign-in rate limiter is per app instance). */
@@ -58,7 +86,12 @@ export function createAuthRouter() {
     if (user?.lockUntil && user.lockUntil > new Date()) {
       const mins = Math.ceil((user.lockUntil - Date.now()) / 60000);
       await audit(req, { action: 'LOGIN_BLOCKED', actor: asActor(user), detail: 'Sign-in attempt while account is locked' });
-      throw new AppError(423, 'ACCOUNT_LOCKED', `This account is locked after too many wrong passwords. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`, 'Wrong password? Wait for the lock to end.');
+      throw new AppError(
+        423,
+        'ACCOUNT_LOCKED',
+        `This account is locked after too many wrong passwords. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`,
+        'Wrong password? Wait for the lock to end.',
+      );
     }
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       if (user) {
@@ -73,7 +106,12 @@ export function createAuthRouter() {
       throw new AppError(401, 'BAD_CREDENTIALS', 'That email and password do not match.', 'Check for typos and try again.');
     }
     if (!user.emailVerified) {
-      throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Please confirm your email before signing in.', 'We sent you a link when you signed up. Use "Send it again" if you cannot find it.');
+      throw new AppError(
+        403,
+        'EMAIL_NOT_VERIFIED',
+        'Please confirm your email before signing in.',
+        'We sent you a link when you signed up. Use "Send it again" if you cannot find it.',
+      );
     }
     user.failedLogins = 0;
     user.lockUntil = null;
@@ -81,12 +119,12 @@ export function createAuthRouter() {
     const token = await startSession(res, user);
     await audit(req, { action: 'LOGIN', actor: asActor(user) });
     // `token` is for API clients/tests; the browser app uses the httpOnly cookies instead.
-    res.json({ token, user: publicUser(user) });
+    res.json({ token, user: await fullProfile(user) });
   });
 
   authRouter.post('/refresh', async (req, res) => {
     const user = await rotateSession(req, res);
-    res.json({ user: publicUser(user) });
+    res.json({ user: await fullProfile(user) });
   });
 
   authRouter.post('/logout', async (req, res) => {
@@ -101,7 +139,11 @@ export function createAuthRouter() {
   authRouter.post('/signup', signupLimiter, async (req, res) => {
     const input = parse(signupSchema, req.body);
     const { user, needsVerification } = await signUp(input);
-    await audit(req, { action: 'SIGNUP', actor: asActor(user), detail: needsVerification ? 'Waiting for email confirmation' : 'Account created' });
+    await audit(req, {
+      action: 'SIGNUP',
+      actor: asActor(user),
+      detail: needsVerification ? 'Waiting for email confirmation' : 'Account created',
+    });
     res.status(201).json({
       ok: true,
       needsVerification,
@@ -128,7 +170,10 @@ export function createAuthRouter() {
     const { email } = parse(forgotSchema, req.body);
     const user = await requestReset(email);
     if (user) await audit(req, { action: 'PASSWORD_RESET_REQUESTED', actor: asActor(user) });
-    res.json({ ok: true, message: 'If there is an account for that address, we have sent a link to choose a new password. It works for 60 minutes.' });
+    res.json({
+      ok: true,
+      message: 'If there is an account for that address, we have sent a link to choose a new password. It works for 60 minutes.',
+    });
   });
 
   authRouter.post('/check-reset', mailLimiter, async (req, res) => {
@@ -153,6 +198,9 @@ export function createAuthRouter() {
   /** Tells the sign-up page whether it will email a link (so it can say what to expect). */
   authRouter.get('/options', (_req, res) => res.json({ emailEnabled: isMailConfigured() }));
 
-  authRouter.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
+  authRouter.get('/me', requireAuth, async (req, res) => {
+    const u = await User.findById(req.user.id);
+    res.json({ user: await fullProfile(u) });
+  });
   return authRouter;
 }

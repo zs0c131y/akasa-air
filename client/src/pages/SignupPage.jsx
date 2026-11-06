@@ -54,21 +54,38 @@ export default function SignupPage() {
         {done.needsVerification ? (
           <div className="space-y-4">
             <MailCheck className="size-8 text-brand" aria-hidden="true" />
-            <p>We sent a link to <strong className="font-semibold">{form.email}</strong>. Open it to confirm your address, then sign in.</p>
-            <p className="text-sm text-muted-foreground">Nothing there after a few minutes? Look in your spam folder, or ask for a new link.</p>
+            <p>
+              We sent a link to <strong className="font-semibold">{form.email}</strong>. Open it to confirm your address, then sign in.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Nothing there after a few minutes? Look in your spam folder, or ask for a new link.
+            </p>
             <ErrorBox error={error} />
-            {resent && <p role="status" className="text-sm font-medium text-status-green-fg">{resent}</p>}
+            {resent && (
+              <p role="status" className="text-sm font-medium text-status-green-fg">
+                {resent}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline" type="button" onClick={resend}>Send it again</Button>
-              <Button asChild variant="brand"><Link to="/login">Go to sign in</Link></Button>
+              <Button variant="outline" type="button" onClick={resend}>
+                Send it again
+              </Button>
+              <Button asChild variant="brand">
+                <Link to="/login">Go to sign in</Link>
+              </Button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             <CircleCheck className="size-8 text-status-green-fg" aria-hidden="true" />
             <p>{done.message || 'Your account has been created.'}</p>
-            <p className="text-sm text-muted-foreground">Before you can apply for leave, the Head of Department needs to choose your manager. You can sign in now and look around while you wait.</p>
-            <Button asChild variant="brand" size="lg" className="w-full"><Link to="/login">Sign in</Link></Button>
+            <p className="text-sm text-muted-foreground">
+              Before you can apply for leave, the Head of Department needs to choose your manager. You can sign in now and look around while
+              you wait.
+            </p>
+            <Button asChild variant="brand" size="lg" className="w-full">
+              <Link to="/login">Sign in</Link>
+            </Button>
           </div>
         )}
       </AuthShell>
@@ -76,7 +93,11 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell kicker="Create an account" title="Join Layover" intro="Use your work email. The Head of Department will set you up with a manager before you apply.">
+    <AuthShell
+      kicker="Create an account"
+      title="Join Layover"
+      intro="Use your work email. The Head of Department will set you up with a manager before you apply."
+    >
       <ErrorBox error={error} className="mb-5" />
       <form onSubmit={submit} noValidate className="space-y-5">
         <div>
@@ -86,7 +107,14 @@ export default function SignupPage() {
         </div>
         <div>
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" autoComplete="email" value={form.email} onChange={set('email')} aria-invalid={Boolean(fields.email)} />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={form.email}
+            onChange={set('email')}
+            aria-invalid={Boolean(fields.email)}
+          />
           <FieldError msg={fields.email} />
         </div>
         <PasswordField
@@ -99,9 +127,16 @@ export default function SignupPage() {
           hint
           context={{ email: form.email, name: form.name }}
         />
-        <Button variant="brand" className="w-full" size="lg" disabled={busy}>{busy ? 'Creating your account' : 'Create account'}</Button>
+        <Button variant="brand" className="w-full" size="lg" disabled={busy}>
+          {busy ? 'Creating your account' : 'Create account'}
+        </Button>
       </form>
-      <p className="mt-5 text-sm text-muted-foreground">Already have an account? <Link to="/login" className="font-semibold text-foreground underline underline-offset-4">Sign in</Link></p>
+      <p className="mt-5 text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link to="/login" className="font-semibold text-foreground underline underline-offset-4">
+          Sign in
+        </Link>
+      </p>
     </AuthShell>
   );
 }

@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
+process.env.LEAVE_ALLOWANCE_DAYS = '1000';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-sec-'));
 const { createApp } = await import('../src/app.js');
 const { seedIfEmpty, DEMO_PASSWORD } = await import('../src/seed.js');
@@ -43,7 +44,11 @@ describe('sessions', () => {
     const blocked = await request(app).post('/api/leaves/obligations-test/cancel').set('Cookie', cookies).send({});
     expect(blocked.status).toBe(403);
     expect(blocked.body.error.code).toBe('CSRF_BLOCKED');
-    const allowed = await request(app).post('/api/leaves/000000000000000000000000/cancel').set('Cookie', cookies).set('X-Requested-With', 'lms').send({});
+    const allowed = await request(app)
+      .post('/api/leaves/000000000000000000000000/cancel')
+      .set('Cookie', cookies)
+      .set('X-Requested-With', 'lms')
+      .send({});
     expect(allowed.status).toBe(404); // got past CSRF; the request simply does not exist
   });
   it('rotates refresh tokens and revokes everything if an old one is replayed', async () => {
@@ -62,7 +67,12 @@ describe('sessions', () => {
     const r = await login();
     const cookies = cookiesOf(r);
     await request(app).post('/api/auth/logout').set('Cookie', cookies).send({});
-    const again = await request(app).post('/api/auth/refresh').set('Cookie', cookies.filter((c) => c.startsWith('lms_refresh=')));
+    const again = await request(app)
+      .post('/api/auth/refresh')
+      .set(
+        'Cookie',
+        cookies.filter((c) => c.startsWith('lms_refresh=')),
+      );
     expect(again.status).toBe(401);
   });
 });
@@ -76,7 +86,9 @@ describe('hardening', () => {
     expect(locked.body.error.message).toMatch(/Try again in/);
   });
   it('rejects NoSQL operator injection in body and query', async () => {
-    const body = await request(app).post('/api/auth/login').send({ email: { $ne: null }, password: { $ne: null } });
+    const body = await request(app)
+      .post('/api/auth/login')
+      .send({ email: { $ne: null }, password: { $ne: null } });
     expect(body.status).toBe(400);
     const token = (await login('priya.nair@akasa.demo')).body.token;
     const q = await request(app).get('/api/leaves?scope=all&status[$ne]=APPROVED').set('Authorization', `Bearer ${token}`);

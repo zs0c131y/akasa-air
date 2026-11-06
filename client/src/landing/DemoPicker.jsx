@@ -62,17 +62,30 @@ export function DemoPicker() {
                   <span className="mt-1 block font-semibold leading-tight">{name}</span>
                   <span className="mt-0.5 block text-sm text-muted-foreground">{mine ? 'Signing in…' : note}</span>
                 </span>
-                {mine
-                  ? <LoaderCircle className="size-5 shrink-0 animate-spin text-brand" aria-hidden="true" />
-                  : <ArrowRight className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" aria-hidden="true" />}
+                {mine ? (
+                  <LoaderCircle className="size-5 shrink-0 animate-spin text-brand" aria-hidden="true" />
+                ) : (
+                  <ArrowRight
+                    className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
             </li>
           );
         })}
       </ul>
-      <p className="sr-only" role="status">{busy ? `Signing in as ${DEMO_PEOPLE.find((p) => p[1] === busy)[0]}…` : ''}</p>
+      <p className="sr-only" role="status">
+        {busy ? `Signing in as ${DEMO_PEOPLE.find((p) => p[1] === busy)[0]}…` : ''}
+      </p>
       <p className="mt-6 text-sm text-muted-foreground">
-        Have a real account? <Link to="/login" className="inline-flex min-h-11 items-center font-medium text-brand underline underline-offset-4 hover:opacity-80">Sign in with your own account</Link>
+        Have a real account?{' '}
+        <Link
+          to="/login"
+          className="inline-flex min-h-11 items-center font-medium text-brand underline underline-offset-4 hover:opacity-80"
+        >
+          Sign in with your own account
+        </Link>
       </p>
     </div>
   );

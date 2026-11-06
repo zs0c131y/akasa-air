@@ -11,14 +11,7 @@ export const MAX_DAYS_IN_FUTURE = 365;
 export const MAX_LEAVE_DAYS = 60;
 
 export const ROLES = ['EMPLOYEE', 'MANAGER', 'HOD'];
-export const STATUSES = [
-  'PENDING_MANAGER',
-  'PENDING_HOD',
-  'INFO_REQUESTED',
-  'APPROVED',
-  'REJECTED',
-  'CANCELLED',
-];
+export const STATUSES = ['PENDING_MANAGER', 'PENDING_HOD', 'INFO_REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED'];
 export const STATUS_LABELS = {
   PENDING_MANAGER: 'Pending manager',
   PENDING_HOD: 'Awaiting HOD',
@@ -45,8 +38,7 @@ export function todayISO(now = new Date()) {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
-const holidayMap = (holidays = []) =>
-  new Map(holidays.map((h) => (typeof h === 'string' ? [h, ''] : [h.date, h.name ?? ''])));
+const holidayMap = (holidays = []) => new Map(holidays.map((h) => (typeof h === 'string' ? [h, ''] : [h.date, h.name ?? ''])));
 
 /**
  * What a date range costs in leave. Sundays and public holidays are days off, so they are never charged.
@@ -171,65 +163,67 @@ const isoDate = (label) =>
     .string({ required_error: `${label} is required. Please pick a date.` })
     .refine((v) => parseISODate(v) !== null, `${label} is not a valid date. Use the format YYYY-MM-DD.`);
 
-export const makeLeaveInputSchema = (holidays = []) => z
-  .object({
-    employeeName: z.string().trim().optional(),
-    isEmergency: z
-      .union([z.boolean(), z.enum(['true', 'false'])])
-      .optional()
-      .transform((v) => v === true || v === 'true'),
-    fromDate: isoDate('Start date'),
-    toDate: isoDate('End date'),
-    reason: z
-      .string({ required_error: 'Please tell us the reason for your leave.' })
-      .trim()
-      .min(5, 'Please give a reason of at least 5 characters, for example "Family wedding".')
-      .max(500, 'Please keep the reason under 500 characters.'),
-  })
-  .superRefine((v, ctx) => {
-    const from = parseISODate(v.fromDate);
-    const to = parseISODate(v.toDate);
-    if (from === null || to === null) return;
-    if (to < from) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['toDate'],
-        message: 'End date is before the start date. Please pick an end date on or after the start date.',
-      });
-      return;
-    }
-    const counted = countLeaveDays(v.fromDate, v.toDate, holidays);
-    if (counted === 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['toDate'],
-        message: 'Sundays and public holidays are not counted as leave, so this request has no leave days. Please include at least one working day.',
-      });
-      return;
-    }
-    if (counted > MAX_LEAVE_DAYS) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['toDate'],
-        message: `A single request can cover at most ${MAX_LEAVE_DAYS} days. Please split it into two requests.`,
-      });
-    }
-    const today = parseISODate(todayISO());
-    if (from < today - MAX_DAYS_IN_PAST * DAY_MS) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['fromDate'],
-        message: 'Start date is in the past. Please pick today or a later date.',
-      });
-    }
-    if (to > today + MAX_DAYS_IN_FUTURE * DAY_MS) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['toDate'],
-        message: `Leave can be requested up to ${MAX_DAYS_IN_FUTURE} days ahead. Please pick an earlier end date.`,
-      });
-    }
-  });
+export const makeLeaveInputSchema = (holidays = []) =>
+  z
+    .object({
+      employeeName: z.string().trim().optional(),
+      isEmergency: z
+        .union([z.boolean(), z.enum(['true', 'false'])])
+        .optional()
+        .transform((v) => v === true || v === 'true'),
+      fromDate: isoDate('Start date'),
+      toDate: isoDate('End date'),
+      reason: z
+        .string({ required_error: 'Please tell us the reason for your leave.' })
+        .trim()
+        .min(5, 'Please give a reason of at least 5 characters, for example "Family wedding".')
+        .max(500, 'Please keep the reason under 500 characters.'),
+    })
+    .superRefine((v, ctx) => {
+      const from = parseISODate(v.fromDate);
+      const to = parseISODate(v.toDate);
+      if (from === null || to === null) return;
+      if (to < from) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['toDate'],
+          message: 'End date is before the start date. Please pick an end date on or after the start date.',
+        });
+        return;
+      }
+      const counted = countLeaveDays(v.fromDate, v.toDate, holidays);
+      if (counted === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['toDate'],
+          message:
+            'Sundays and public holidays are not counted as leave, so this request has no leave days. Please include at least one working day.',
+        });
+        return;
+      }
+      if (counted > MAX_LEAVE_DAYS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['toDate'],
+          message: `A single request can cover at most ${MAX_LEAVE_DAYS} days. Please split it into two requests.`,
+        });
+      }
+      const today = parseISODate(todayISO());
+      if (from < today - MAX_DAYS_IN_PAST * DAY_MS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['fromDate'],
+          message: 'Start date is in the past. Please pick today or a later date.',
+        });
+      }
+      if (to > today + MAX_DAYS_IN_FUTURE * DAY_MS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['toDate'],
+          message: `Leave can be requested up to ${MAX_DAYS_IN_FUTURE} days ahead. Please pick an earlier end date.`,
+        });
+      }
+    });
 
 /** Schema without a holiday calendar (Sundays only); the server and the apply form use makeLeaveInputSchema(holidays). */
 export const leaveInputSchema = makeLeaveInputSchema();
@@ -254,7 +248,18 @@ export const replySchema = z.object({
 });
 
 /** Passwords: at least 8 characters with a letter and a number, and nothing obvious. Returns a friendly message, or null if fine. */
-const COMMON_PASSWORDS = ['password', '12345678', '123456789', 'qwertyuiop', 'iloveyou1', 'welcome1', 'letmein1', 'abcd1234', 'password1', 'password123'];
+const COMMON_PASSWORDS = [
+  'password',
+  '12345678',
+  '123456789',
+  'qwertyuiop',
+  'iloveyou1',
+  'welcome1',
+  'letmein1',
+  'abcd1234',
+  'password1',
+  'password123',
+];
 export function passwordProblem(password, { email = '', name = '' } = {}) {
   const p = String(password ?? '');
   if (p.length < 8) return 'Use at least 8 characters.';
@@ -278,7 +283,11 @@ const emailField = z
 
 export const signupSchema = z
   .object({
-    name: z.string({ required_error: 'Please tell us your name.' }).trim().min(2, 'Please enter your full name.').max(100, 'Please keep your name under 100 characters.'),
+    name: z
+      .string({ required_error: 'Please tell us your name.' })
+      .trim()
+      .min(2, 'Please enter your full name.')
+      .max(100, 'Please keep your name under 100 characters.'),
     email: emailField,
     password: z.string({ required_error: 'Please choose a password.' }),
   })

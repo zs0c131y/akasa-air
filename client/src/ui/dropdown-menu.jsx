@@ -36,4 +36,6 @@ export const DropdownMenuRadioItem = ({ className, children, ...props }) => (
 export const DropdownMenuLabel = ({ className, ...props }) => (
   <DM.Label className={cn('px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground', className)} {...props} />
 );
-export const DropdownMenuSeparator = ({ className, ...props }) => <DM.Separator className={cn('-mx-1.5 my-1.5 h-px bg-border', className)} {...props} />;
+export const DropdownMenuSeparator = ({ className, ...props }) => (
+  <DM.Separator className={cn('-mx-1.5 my-1.5 h-px bg-border', className)} {...props} />
+);

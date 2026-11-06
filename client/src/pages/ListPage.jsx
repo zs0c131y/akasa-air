@@ -17,19 +17,37 @@ export default function ListPage({ scope, title, description, kicker }) {
 
   useEffect(() => {
     setData(null);
-    api.list({ scope, page, ...(status ? { status } : {}) }).then(setData).catch(setError);
+    api
+      .list({ scope, page, ...(status ? { status } : {}) })
+      .then(setData)
+      .catch(setError);
   }, [scope, status, page]);
 
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
-  const pick = (s) => { setStatus(s); setPage(1); };
+  const pick = (s) => {
+    setStatus(s);
+    setPage(1);
+  };
   const emptyTitle = scope === 'queue' ? 'Nothing is waiting for you' : status ? 'No requests with that status' : 'No requests yet';
-  const emptyHint = scope === 'queue'
-    ? 'When someone files a request for you to decide, it will show up here.'
-    : status ? 'Pick All to see every request again.' : scope === 'mine' ? 'Start a new request and it will appear here.' : 'Requests you can see will appear here.';
+  const emptyHint =
+    scope === 'queue'
+      ? 'When someone files a request for you to decide, it will show up here.'
+      : status
+        ? 'Pick All to see every request again.'
+        : scope === 'mine'
+          ? 'Start a new request and it will appear here.'
+          : 'Requests you can see will appear here.';
   return (
     <section>
       <PageHeader title={title} description={description} kicker={kicker}>
-        {scope === 'mine' && <Button asChild variant="brand"><Link to="/apply"><FilePlus2 />New request</Link></Button>}
+        {scope === 'mine' && (
+          <Button asChild variant="brand">
+            <Link to="/apply">
+              <FilePlus2 />
+              New request
+            </Link>
+          </Button>
+        )}
       </PageHeader>
 
       {scope !== 'queue' && (
@@ -55,7 +73,9 @@ export default function ListPage({ scope, title, description, kicker }) {
       <ErrorBox error={error} className="mb-4" />
       {!data && !error && (
         <div className="space-y-3" role="status" aria-label="Loading requests">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
         </div>
       )}
       {data && data.items.length === 0 && (
@@ -89,7 +109,10 @@ export default function ListPage({ scope, title, description, kicker }) {
               </div>
               <div className="flex shrink-0 flex-col items-end gap-3 sm:flex-row sm:items-center">
                 <StatusChip status={l.status} leave={l} />
-                <ArrowRight className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground sm:block" aria-hidden="true" />
+                <ArrowRight
+                  className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground sm:block"
+                  aria-hidden="true"
+                />
               </div>
             </Link>
           </li>

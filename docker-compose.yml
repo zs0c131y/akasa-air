@@ -1,9 +1,16 @@
 services:
   mongo:
     image: mongo:7
-    command: ["--replSet", "rs0", "--bind_ip_all"]
+    command: ['--replSet', 'rs0', '--bind_ip_all']
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      test:
+        [
+          'CMD',
+          'mongosh',
+          '--quiet',
+          '--eval',
+          "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }",
+        ]
       interval: 5s
       retries: 20
     volumes:
@@ -17,9 +24,9 @@ services:
       MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
       JWT_SECRET: change-me-in-real-deployments
       DATA_DIR: /data
-      COOKIE_SECURE: "false" # set to true (default) when served over HTTPS
+      COOKIE_SECURE: 'false' # set to true (default) when served over HTTPS
     ports:
-      - "4000:4000"
+      - '4000:4000'
     volumes:
       - app-data:/data
 volumes:

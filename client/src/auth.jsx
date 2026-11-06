@@ -24,5 +24,13 @@ export function AuthProvider({ children }) {
     await api.logout().catch(() => {});
     setUser(null);
   };
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  const refresh = async () => {
+    try {
+      const r = await api.me();
+      setUser(r.user);
+    } catch {
+      /* keep the current user; the next request will surface a real sign-out */
+    }
+  };
+  return <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>{children}</AuthContext.Provider>;
 }

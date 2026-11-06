@@ -12,6 +12,8 @@ import { leavesRouter } from './routes/leaves.js';
 import { auditRouter } from './routes/audit.js';
 import { holidaysRouter, locationsRouter, peopleRouter } from './routes/holidays.js';
 import { statsRouter } from './routes/stats.js';
+import { createDocsRouter } from './routes/docs.js';
+import { allowancesRouter, balanceRouter, notificationsRouter, preferencesRouter } from './routes/account.js';
 import { audit } from './services/auditService.js';
 import { securityHeaders, corsAllowlist, apiLimiter, rejectOperatorKeys, requestLogger } from './middleware/security.js';
 
@@ -24,10 +26,9 @@ export function createApp() {
   app.use(securityHeaders());
   app.use(express.json({ limit: '100kb' }));
 
-  app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'up' : 'down' }),
-  );
+  app.get('/health', (_req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'up' : 'down' }));
   app.use('/api', corsAllowlist, apiLimiter(), rejectOperatorKeys);
+  app.use('/api', createDocsRouter());
   app.use('/api/auth', createAuthRouter());
   app.use('/api/leaves', leavesRouter);
   app.use('/api/audit', auditRouter);
@@ -35,6 +36,10 @@ export function createApp() {
   app.use('/api/locations', locationsRouter);
   app.use('/api/people', peopleRouter);
   app.use('/api/stats', statsRouter);
+  app.use('/api/balance', balanceRouter);
+  app.use('/api/allowances', allowancesRouter);
+  app.use('/api/notifications', notificationsRouter);
+  app.use('/api/preferences', preferencesRouter);
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'That page of the API does not exist.')));
 
   const dist = config.clientDist;
@@ -57,13 +62,20 @@ function errorHandler(err, req, res, _next) {
       LIMIT_FILE_COUNT: `You can attach at most ${MAX_FILES} documents.`,
       LIMIT_UNEXPECTED_FILE: 'Unexpected file field. Please use the document picker.',
     };
-    e = new AppError(400, 'UPLOAD_FAILED', msgs[err.code] ?? 'The upload failed.', 'Check the file and try again.', { documents: msgs[err.code] });
+    e = new AppError(400, 'UPLOAD_FAILED', msgs[err.code] ?? 'The upload failed.', 'Check the file and try again.', {
+      documents: msgs[err.code],
+    });
   } else if (err?.type === 'entity.parse.failed') {
     e = new AppError(400, 'BAD_JSON', 'We could not read that request.', 'Please try again.');
   }
   if (!(e instanceof AppError)) {
     console.error('[error]', err);
-    e = new AppError(500, 'INTERNAL', 'Something went wrong on our side.', 'Please try again in a moment. If it keeps happening, contact support.');
+    e = new AppError(
+      500,
+      'INTERNAL',
+      'Something went wrong on our side.',
+      'Please try again in a moment. If it keeps happening, contact support.',
+    );
   }
   if (req.user && (e.status === 403 || (e.status === 404 && req.originalUrl.startsWith('/api/leaves')))) {
     audit(req, { action: 'ACCESS_DENIED', detail: `${req.method} ${req.originalUrl.split('?')[0]} -> ${e.status}` });

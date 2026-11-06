@@ -16,7 +16,12 @@ export default {
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
-        border: c('border'), rule: c('rule'), input: c('input'), ring: c('ring'), background: c('background'), foreground: c('foreground'),
+        border: c('border'),
+        rule: c('rule'),
+        input: c('input'),
+        ring: c('ring'),
+        background: c('background'),
+        foreground: c('foreground'),
         paper: c('paper'),
         primary: { DEFAULT: c('primary'), foreground: c('primary-foreground') },
         secondary: { DEFAULT: c('secondary'), foreground: c('secondary-foreground') },
@@ -27,7 +32,14 @@ export default {
         card: { DEFAULT: c('card'), foreground: c('card-foreground') },
         brand: { DEFAULT: c('brand'), foreground: c('brand-foreground') },
         flame: { DEFAULT: c('flame'), foreground: c('flame-foreground') },
-        status: { amber: status('amber'), blue: status('blue'), purple: status('purple'), green: status('green'), red: status('red'), grey: status('grey') },
+        status: {
+          amber: status('amber'),
+          blue: status('blue'),
+          purple: status('purple'),
+          green: status('green'),
+          red: status('red'),
+          grey: status('grey'),
+        },
       },
       borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 3px)', sm: 'calc(var(--radius) - 6px)' },
       boxShadow: {
@@ -36,7 +48,11 @@ export default {
       },
       keyframes: {
         rise: { from: { opacity: '0', transform: 'translateY(12px)' }, to: { opacity: '1', transform: 'none' } },
-        stamp: { '0%': { opacity: '0', transform: 'scale(1.6) rotate(-14deg)' }, '60%': { opacity: '1', transform: 'scale(.96) rotate(-7deg)' }, '100%': { opacity: '1', transform: 'scale(1) rotate(-7deg)' } },
+        stamp: {
+          '0%': { opacity: '0', transform: 'scale(1.6) rotate(-14deg)' },
+          '60%': { opacity: '1', transform: 'scale(.96) rotate(-7deg)' },
+          '100%': { opacity: '1', transform: 'scale(1) rotate(-7deg)' },
+        },
       },
       animation: { rise: 'rise .6s cubic-bezier(.2,.7,.2,1) both', stamp: 'stamp .5s cubic-bezier(.2,.8,.2,1) .4s both' },
     },

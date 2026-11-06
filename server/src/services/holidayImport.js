@@ -27,7 +27,7 @@ export function normalizeDate(input) {
 
 /** Splits CSV / TSV / semicolon text into rows of cells. Handles "quoted, fields" and "" escapes. */
 export function parseDelimited(text) {
-  const src = String(text ?? '').replace(/^﻿/, '');
+  const src = String(text ?? '').replace(/^\uFEFF/, '');
   const firstLine = src.split(/\r?\n/).find((l) => l.trim()) ?? '';
   const delim = [',', '\t', ';'].map((c) => [c, firstLine.split(c).length]).sort((a, b) => b[1] - a[1])[0][0];
   const rows = [];
@@ -36,7 +36,10 @@ export function parseDelimited(text) {
   let quoted = false;
   let line = 1;
   let rowLine = 1;
-  const endCell = () => { row.push(cell.trim()); cell = ''; };
+  const endCell = () => {
+    row.push(cell.trim());
+    cell = '';
+  };
   const endRow = () => {
     endCell();
     if (row.some((c) => c !== '')) rows.push({ line: rowLine, cells: row });
@@ -45,8 +48,14 @@ export function parseDelimited(text) {
   for (let i = 0; i < src.length; i += 1) {
     const ch = src[i];
     if (quoted) {
-      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i += 1; } else if (ch === '"') quoted = false;
-      else { cell += ch; if (ch === '\n') line += 1; }
+      if (ch === '"' && src[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (ch === '"') quoted = false;
+      else {
+        cell += ch;
+        if (ch === '\n') line += 1;
+      }
     } else if (ch === '"' && cell === '') quoted = true;
     else if (ch === delim) endCell();
     else if (ch === '\n' || ch === '\r') {
@@ -77,11 +86,16 @@ export function parseHolidayRows(text) {
   const looksLikeHeader = !rows[0].cells.some((c) => normalizeDate(c));
   if (looksLikeHeader) {
     const head = rows[0].cells.map((c) => c.toLowerCase());
-    const find = (names, fallback) => { const i = head.findIndex((h) => names.includes(h)); return i >= 0 ? i : fallback; };
+    const find = (names, fallback) => {
+      const i = head.findIndex((h) => names.includes(h));
+      return i >= 0 ? i : fallback;
+    };
     dateCol = find(['date', 'day'], 0);
     nameCol = find(NAME_HEADERS, 1);
     placeCol = find(PLACE_HEADERS, 2);
     start = 1;
   }
-  return rows.slice(start).map(({ line, cells }) => ({ line, date: cells[dateCol] ?? '', name: cells[nameCol] ?? '', location: cells[placeCol] ?? '' }));
+  return rows
+    .slice(start)
+    .map(({ line, cells }) => ({ line, date: cells[dateCol] ?? '', name: cells[nameCol] ?? '', location: cells[placeCol] ?? '' }));
 }

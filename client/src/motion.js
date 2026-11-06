@@ -4,7 +4,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export const reducedMotion = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+export const reducedMotion = () =>
+  typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
 const MOTION_OK = '(prefers-reduced-motion: no-preference)';
 
@@ -22,23 +23,51 @@ export function useLandingMotion(scope) {
     const ctx = gsap.context(() => {
       mm.add(MOTION_OK, () => {
         gsap.utils.toArray('[data-reveal]').forEach((el) => {
-          gsap.from(el, { opacity: 0, y: 28, duration: 0.85, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%', once: true } });
+          gsap.from(el, {
+            opacity: 0,
+            y: 28,
+            duration: 0.85,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+          });
         });
         gsap.utils.toArray('[data-stagger]').forEach((group) => {
-          gsap.from(group.children, { opacity: 0, y: 22, duration: 0.7, ease: 'power3.out', stagger: 0.08, scrollTrigger: { trigger: group, start: 'top 88%', once: true } });
+          gsap.from(group.children, {
+            opacity: 0,
+            y: 22,
+            duration: 0.7,
+            ease: 'power3.out',
+            stagger: 0.08,
+            scrollTrigger: { trigger: group, start: 'top 88%', once: true },
+          });
         });
         gsap.utils.toArray('[data-draw]').forEach((path) => {
           const len = Number(path.getAttribute('pathLength')) || path.getTotalLength();
-          gsap.fromTo(path, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut', scrollTrigger: { trigger: path, start: 'top 85%', once: true } });
+          gsap.fromTo(
+            path,
+            { strokeDasharray: len, strokeDashoffset: len },
+            { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut', scrollTrigger: { trigger: path, start: 'top 85%', once: true } },
+          );
         });
         gsap.utils.toArray('[data-count]').forEach((el) => {
           const to = Number(el.dataset.count);
           const state = { v: 0 };
-          gsap.to(state, { v: to, duration: 1.2, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top 90%', once: true }, onUpdate: () => { el.textContent = String(Math.round(state.v)); } });
+          gsap.to(state, {
+            v: to,
+            duration: 1.2,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+            onUpdate: () => {
+              el.textContent = String(Math.round(state.v));
+            },
+          });
         });
       });
     }, scope);
-    return () => { ctx.revert(); mm.revert(); };
+    return () => {
+      ctx.revert();
+      mm.revert();
+    };
   }, [scope]);
 }
 
@@ -49,8 +78,11 @@ export function heroIntro(root) {
   mm.add(MOTION_OK, () => {
     const q = gsap.utils.selector(root);
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.from(q('[data-hero-fade]'), { opacity: 0, y: 18, duration: 0.75, stagger: 0.08 })
-      .from(q('[data-hero-board]'), { opacity: 0, y: 36, duration: 1 }, 0.2);
+    tl.from(q('[data-hero-fade]'), { opacity: 0, y: 18, duration: 0.75, stagger: 0.08 }).from(
+      q('[data-hero-board]'),
+      { opacity: 0, y: 36, duration: 1 },
+      0.2,
+    );
   });
   return () => mm.revert();
 }
@@ -146,8 +178,14 @@ export function heroBoardLoop(root) {
 
     build();
     const st = ScrollTrigger.create({
-      trigger: root, start: 'top bottom', end: 'bottom top',
-      onToggle: (self) => { onScreen = self.isActive; if (onScreen) tl?.play(); else tl?.pause(); },
+      trigger: root,
+      start: 'top bottom',
+      end: 'bottom top',
+      onToggle: (self) => {
+        onScreen = self.isActive;
+        if (onScreen) tl?.play();
+        else tl?.pause();
+      },
     });
     onScreen = st.isActive;
     if (!onScreen) tl?.pause();

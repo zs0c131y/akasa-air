@@ -30,6 +30,10 @@ Open http://localhost:4000. (Starts MongoDB as a single-node replica set, the ap
 ### Development
 `npm run dev` runs the API (port 4000, restarts by itself when server or shared code changes) and Vite (port 5173, proxies `/api`, hot-reloads the page as you edit client code). **While developing, open http://localhost:5173**, not 4000: port 4000 serves the last production build (`npm run build`) and does not hot-reload.
 
+### API docs, lint and formatting
+- **API docs:** `/api/docs` (browsable) and `/api/docs.json` (OpenAPI 3).
+- `npm run lint` checks the code (ESLint, with accessibility and React hooks rules for the client); `npm run lint:fix` repairs what it can; `npm run format` / `npm run format:check` use Prettier.
+
 ### Tests
 `npm test` (unit tests for the day-count/validation rules and the workflow state machine, plus API integration tests).
 

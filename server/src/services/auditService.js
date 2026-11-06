@@ -34,7 +34,11 @@ export async function listAudit({ page = 1, pageSize = 25, action, q }) {
   const size = Math.min(Math.max(Number(pageSize) || 25, 1), 100);
   const pg = Math.max(Number(page) || 1, 1);
   const [items, total] = await Promise.all([
-    AuditLog.find(filter).sort({ at: -1 }).skip((pg - 1) * size).limit(size).lean(),
+    AuditLog.find(filter)
+      .sort({ at: -1 })
+      .skip((pg - 1) * size)
+      .limit(size)
+      .lean(),
     AuditLog.countDocuments(filter),
   ]);
   return {

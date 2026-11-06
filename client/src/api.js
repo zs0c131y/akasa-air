@@ -28,7 +28,9 @@ async function request(path, { method = 'GET', json, form, raw, retry = true } =
   }
   if (res.status === 401 && retry && (!path.startsWith('/auth/') || path === '/auth/me')) {
     // Access token expired: renew it once (shared between parallel calls), then retry.
-    refreshing ??= request('/auth/refresh', { method: 'POST', retry: false }).finally(() => { refreshing = null; });
+    refreshing ??= request('/auth/refresh', { method: 'POST', retry: false }).finally(() => {
+      refreshing = null;
+    });
     try {
       await refreshing;
       return request(path, { method, json, form, raw, retry: false });
@@ -56,7 +58,8 @@ export const api = {
   forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', json: { email } }),
   checkReset: (token) => request('/auth/check-reset', { method: 'POST', json: { token } }),
   resetPassword: (token, password) => request('/auth/reset-password', { method: 'POST', json: { token, password } }),
-  changePassword: (currentPassword, newPassword) => request('/auth/change-password', { method: 'POST', json: { currentPassword, newPassword } }),
+  changePassword: (currentPassword, newPassword) =>
+    request('/auth/change-password', { method: 'POST', json: { currentPassword, newPassword } }),
   setManager: (id, managerId) => request(`/people/${id}/manager`, { method: 'PATCH', json: { managerId } }),
   setRole: (id, role) => request(`/people/${id}/role`, { method: 'PATCH', json: { role } }),
   me: () => request('/auth/me'),
@@ -68,6 +71,15 @@ export const api = {
   addHoliday: (json) => request('/holidays', { method: 'POST', json }),
   removeHoliday: (id) => request(`/holidays/${id}`, { method: 'DELETE' }),
   importHolidays: (csv, apply) => request('/holidays/import', { method: 'POST', json: { csv, apply } }),
+  setPreferences: (json) => request('/preferences', { method: 'PATCH', json }),
+  balance: (year) => request(`/balance?${new URLSearchParams({ year })}`),
+  allowances: (year) => request(`/allowances?${new URLSearchParams({ year })}`),
+  setDefaultAllowance: (days) => request('/allowances/default', { method: 'PUT', json: { days } }),
+  setAllowance: (userId, year, days) => request(`/allowances/${userId}`, { method: 'PUT', json: { year, days } }),
+  resetAllowance: (userId, year) => request(`/allowances/${userId}?${new URLSearchParams({ year })}`, { method: 'DELETE' }),
+  importAllowances: (csv, apply) => request('/allowances/import', { method: 'POST', json: { csv, apply } }),
+  notifications: (limit = 8) => request(`/notifications?${new URLSearchParams({ limit })}`),
+  markRead: (body) => request('/notifications/read', { method: 'POST', json: body }),
   locations: () => request('/locations'),
   addLocation: (name) => request('/locations', { method: 'POST', json: { name } }),
   removeLocation: (id) => request(`/locations/${id}`, { method: 'DELETE' }),

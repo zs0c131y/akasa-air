@@ -3,7 +3,17 @@ import { requireAuth } from '../middleware/auth.js';
 import { forbidden } from '../errors.js';
 import { audit } from '../services/auditService.js';
 import {
-  addHoliday, addLocation, importHolidays, listHolidays, listLocations, listPeople, removeHoliday, removeLocation, setPersonLocation, setPersonManager, setPersonRole,
+  addHoliday,
+  addLocation,
+  importHolidays,
+  listHolidays,
+  listLocations,
+  listPeople,
+  removeHoliday,
+  removeLocation,
+  setPersonLocation,
+  setPersonManager,
+  setPersonRole,
 } from '../services/holidayService.js';
 
 const onlyHod = (req, what = 'change the holiday calendar') => {
@@ -34,7 +44,8 @@ holidaysRouter.post('/', async (req, res) => {
 holidaysRouter.post('/import', async (req, res) => {
   onlyHod(req);
   const result = await importHolidays(req.body?.csv, { apply: req.body?.apply === true }, req.user);
-  if (result.applied) await audit(req, { action: 'HOLIDAYS_IMPORTED', detail: `${result.summary.new} added, ${result.summary.duplicate} skipped` });
+  if (result.applied)
+    await audit(req, { action: 'HOLIDAYS_IMPORTED', detail: `${result.summary.new} added, ${result.summary.duplicate} skipped` });
   res.json(result);
 });
 
@@ -74,14 +85,14 @@ peopleRouter.get('/', async (req, res) => {
 });
 
 peopleRouter.patch('/:id/manager', async (req, res) => {
-  onlyHod(req, 'choose someone\'s manager');
+  onlyHod(req, "choose someone's manager");
   const p = await setPersonManager(req.params.id, req.body?.managerId);
   await audit(req, { action: 'MANAGER_ASSIGNED', employeeName: p.name, detail: `${p.name} now reports to ${p.managerName}` });
   res.json(p);
 });
 
 peopleRouter.patch('/:id/role', async (req, res) => {
-  onlyHod(req, 'change someone\'s role');
+  onlyHod(req, "change someone's role");
   const p = await setPersonRole(req.params.id, req.body?.role);
   await audit(req, { action: 'ROLE_CHANGED', employeeName: p.name, detail: `${p.name}: ${p.from} to ${p.role}` });
   res.json(p);
@@ -90,6 +101,10 @@ peopleRouter.patch('/:id/role', async (req, res) => {
 peopleRouter.patch('/:id/location', async (req, res) => {
   onlyHod(req, 'change where someone works');
   const p = await setPersonLocation(req.params.id, req.body?.location);
-  await audit(req, { action: 'LOCATION_CHANGED', employeeName: p.name, detail: `${p.name}: ${p.from ?? 'none'} to ${p.location ?? 'none'}` });
+  await audit(req, {
+    action: 'LOCATION_CHANGED',
+    employeeName: p.name,
+    detail: `${p.name}: ${p.from ?? 'none'} to ${p.location ?? 'none'}`,
+  });
   res.json({ id: p.id, name: p.name, role: p.role, location: p.location });
 });

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Profile: employee ID (AKA-0001 and so on), department, location, manager and leave balance on the account menu and Account page.
+- Yearly leave allowance: 30 days by default. The HOD can change the default, change one person's allowance, or paste/upload a CSV (`email,allowance,year`) using the same preview-then-apply flow as the holiday import. Requests that would use more than is left are stopped with a clear message; rejected, cancelled or edited requests give the days back.
+- Notifications: in-app notices (bell, unread count, mark read) when a request is filed, approved, passed on, rejected, questioned, replied to or cancelled. Email is optional per person, and is never sent to made-up addresses such as @akasa.demo.
+- API documentation at `/api/docs` (OpenAPI 3), checked against the real routes by a test.
+- ESLint and Prettier set up (`npm run lint`, `npm run format`).
 - Sign-up, email confirmation, forgot and reset password, change password. Email goes through Mailgun (same variables as the other projects); without it, sign-up works at once and links print in the console. The HOD chooses new people's manager, role and location.
 - "More than 3 days" now means days in a row (calendar days away, Sundays and holidays between included). Split-up requests are added together and flagged to approvers, with an audit entry.
 - Landing page: split-request panel replaces the globe (three.js removed); footer disclaimer.

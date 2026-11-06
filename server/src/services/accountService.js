@@ -39,7 +39,13 @@ export async function signUp({ name, email, password }) {
     throw validationError({ email: `Please use your work email (${domains.map((d) => `@${d}`).join(' or ')}).` });
   }
   if (await User.exists({ email })) {
-    throw new AppError(409, 'ACCOUNT_EXISTS', 'There is already an account with that email.', 'Try signing in, or use "Forgot your password?" if you do not remember it.', { email: 'Already registered.' });
+    throw new AppError(
+      409,
+      'ACCOUNT_EXISTS',
+      'There is already an account with that email.',
+      'Try signing in, or use "Forgot your password?" if you do not remember it.',
+      { email: 'Already registered.' },
+    );
   }
   // With no way to send email (not configured), there is nothing to confirm, so the account is usable straight away.
   const needsVerification = isMailConfigured();
@@ -58,7 +64,8 @@ export async function confirmEmail(raw) {
   const row = await takeToken(raw, 'verify');
   if (!row) throw new AppError(400, 'LINK_INVALID', 'This confirmation link has expired or was already used.', 'Sign in to get a new one.');
   const user = await User.findById(row.userId);
-  if (!user) throw new AppError(400, 'LINK_INVALID', 'This confirmation link has expired or was already used.', 'Sign in to get a new one.');
+  if (!user)
+    throw new AppError(400, 'LINK_INVALID', 'This confirmation link has expired or was already used.', 'Sign in to get a new one.');
   user.emailVerified = true;
   await user.save();
   row.usedAt = new Date();
@@ -92,9 +99,11 @@ async function revokeSessions(userId) {
 
 export async function resetPassword(raw, password) {
   const row = await takeToken(raw, 'reset');
-  if (!row) throw new AppError(400, 'LINK_INVALID', 'This reset link has expired or was already used.', 'Ask for a new one from the sign-in page.');
+  if (!row)
+    throw new AppError(400, 'LINK_INVALID', 'This reset link has expired or was already used.', 'Ask for a new one from the sign-in page.');
   const user = await User.findById(row.userId);
-  if (!user) throw new AppError(400, 'LINK_INVALID', 'This reset link has expired or was already used.', 'Ask for a new one from the sign-in page.');
+  if (!user)
+    throw new AppError(400, 'LINK_INVALID', 'This reset link has expired or was already used.', 'Ask for a new one from the sign-in page.');
   const problem = passwordProblem(password, { email: user.email, name: user.name });
   if (problem) throw validationError({ password: problem });
   user.passwordHash = await bcrypt.hash(password, 10);
@@ -111,11 +120,18 @@ export async function resetPassword(raw, password) {
 export async function changePassword(userId, currentPassword, newPassword) {
   const user = await User.findById(userId);
   if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
-    throw new AppError(400, 'WRONG_PASSWORD', 'That is not your current password.', 'Check it and try again, or sign out and use "Forgot your password?".', { currentPassword: 'This does not match.' });
+    throw new AppError(
+      400,
+      'WRONG_PASSWORD',
+      'That is not your current password.',
+      'Check it and try again, or sign out and use "Forgot your password?".',
+      { currentPassword: 'This does not match.' },
+    );
   }
   const problem = passwordProblem(newPassword, { email: user.email, name: user.name });
   if (problem) throw validationError({ newPassword: problem });
-  if (await bcrypt.compare(newPassword, user.passwordHash)) throw validationError({ newPassword: 'Your new password is the same as the old one.' });
+  if (await bcrypt.compare(newPassword, user.passwordHash))
+    throw validationError({ newPassword: 'Your new password is the same as the old one.' });
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   await user.save();
   await revokeSessions(user._id);

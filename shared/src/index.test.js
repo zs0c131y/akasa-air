@@ -42,7 +42,11 @@ describe('countLeaveDays (Sundays are not counted)', () => {
 
 describe('schema: Sunday-only request', () => {
   it('is rejected with a friendly message', () => {
-    const d = (() => { let t = parseISODate(todayISO()) + 86400000; while (new Date(t).getUTCDay() !== 0) t += 86400000; return new Date(t).toISOString().slice(0, 10); })();
+    const d = (() => {
+      let t = parseISODate(todayISO()) + 86400000;
+      while (new Date(t).getUTCDay() !== 0) t += 86400000;
+      return new Date(t).toISOString().slice(0, 10);
+    })();
     const r = leaveInputSchema.safeParse({ fromDate: d, toDate: d, reason: 'Resting day' });
     expect(r.success).toBe(false);
     expect(r.error.issues[0].message).toMatch(/Sundays and public holidays are not counted/);

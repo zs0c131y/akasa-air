@@ -25,7 +25,16 @@ const auditSchema = new mongoose.Schema(
 const blocked = () => {
   throw new Error('Audit log entries are append-only.');
 };
-for (const op of ['updateOne', 'updateMany', 'findOneAndUpdate', 'findOneAndReplace', 'replaceOne', 'deleteOne', 'deleteMany', 'findOneAndDelete']) {
+for (const op of [
+  'updateOne',
+  'updateMany',
+  'findOneAndUpdate',
+  'findOneAndReplace',
+  'replaceOne',
+  'deleteOne',
+  'deleteMany',
+  'findOneAndDelete',
+]) {
   auditSchema.pre(op, blocked);
 }
 auditSchema.pre('save', function () {

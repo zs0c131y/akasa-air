@@ -3,7 +3,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, FileText, MessageCircleQuestion, Pencil, Send, Upload, X } from 'lucide-react';
 import { rejectSchema, infoRequestSchema, excludedSummary, zodFields } from '@lms/shared';
 import { api } from '../api.js';
-import { ACTION_LABELS, Avatar, Badges, ErrorBox, ErrorScreen, FieldError, Notice, Panel, StatusChip, fmtDate, fmtDateTime } from '../components.jsx';
+import {
+  ACTION_LABELS,
+  Avatar,
+  Badges,
+  ErrorBox,
+  ErrorScreen,
+  FieldError,
+  Notice,
+  Panel,
+  StatusChip,
+  fmtDate,
+  fmtDateTime,
+} from '../components.jsx';
 import { useAuth } from '../auth.jsx';
 import { Button } from '../ui/button.jsx';
 import { Input, Label, Textarea } from '../ui/input.jsx';
@@ -21,7 +33,9 @@ export default function DetailPage() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => api.get(id).then(setLeave).catch(setError), [id]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error && !leave) return <ErrorScreen error={error} />;
   if (!leave) {
@@ -70,7 +84,14 @@ export default function DetailPage() {
   const picker = (
     <div>
       <Label htmlFor="more-docs">Attach documents</Label>
-      <Input id="more-docs" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFiles([...e.target.files])} className="h-auto py-2" />
+      <Input
+        id="more-docs"
+        type="file"
+        multiple
+        accept=".pdf,.jpg,.jpeg,.png"
+        onChange={(e) => setFiles([...e.target.files])}
+        className="h-auto py-2"
+      />
       <p className="mt-1.5 text-sm text-muted-foreground">PDF, JPG or PNG, up to 5 MB each.</p>
       <FieldError msg={fields.documents} />
     </div>
@@ -84,7 +105,10 @@ export default function DetailPage() {
 
   return (
     <article>
-      <Button variant="ghost" size="sm" className="-ml-3 mb-5 text-muted-foreground" onClick={() => navigate(-1)}><ArrowLeft />Back</Button>
+      <Button variant="ghost" size="sm" className="-ml-3 mb-5 text-muted-foreground" onClick={() => navigate(-1)}>
+        <ArrowLeft />
+        Back
+      </Button>
 
       <div className={hasSidePanel ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start' : 'grid max-w-3xl gap-6'}>
         <Panel as="div" className="space-y-6">
@@ -102,7 +126,9 @@ export default function DetailPage() {
           <dl className="grid gap-x-8 gap-y-5 border-t pt-5 sm:grid-cols-2">
             <div>
               <dt className="kicker">Dates</dt>
-              <dd className="mt-1.5 font-mono text-sm">{fmtDate(leave.fromDate)} <span className="text-muted-foreground">to</span> {fmtDate(leave.toDate)}</dd>
+              <dd className="mt-1.5 font-mono text-sm">
+                {fmtDate(leave.fromDate)} <span className="text-muted-foreground">to</span> {fmtDate(leave.toDate)}
+              </dd>
             </div>
             <div>
               <dt className="kicker">Counted as leave</dt>
@@ -118,22 +144,32 @@ export default function DetailPage() {
             </div>
           </dl>
 
-          <div className="flex flex-wrap items-center gap-2 empty:hidden"><Badges leave={leave} /></div>
+          <div className="flex flex-wrap items-center gap-2 empty:hidden">
+            <Badges leave={leave} />
+          </div>
           {leave.joinedWith?.length > 0 && (
             <Notice className={isApprover ? 'ring-2 ring-status-amber-fg/40' : undefined}>
               This request follows other leave from the same person:{' '}
               {leave.joinedWith.map((j, i) => (
                 <span key={j.id}>
                   {i > 0 && ', '}
-                  <Link to={`/leaves/${j.id}`} className="font-semibold underline underline-offset-2">{fmtDate(j.fromDate)} to {fmtDate(j.toDate)}</Link>
+                  <Link to={`/leaves/${j.id}`} className="font-semibold underline underline-offset-2">
+                    {fmtDate(j.fromDate)} to {fmtDate(j.toDate)}
+                  </Link>
                 </span>
               ))}
               . Together that is {leave.absenceDays} days in a row, so it needs a document and the HOD's approval.
             </Notice>
           )}
-          {leave.isLong && <p className="text-sm text-muted-foreground">This is long leave (more than 3 days in a row), so it needs a yes from the manager and then from the HOD.</p>}
+          {leave.isLong && (
+            <p className="text-sm text-muted-foreground">
+              This is long leave (more than 3 days in a row), so it needs a yes from the manager and then from the HOD.
+            </p>
+          )}
           {leave.documentsPending && (
-            <Notice>Supporting documents are due by {fmtDate(leave.documentsDueBy)}. Send them before you return to work or ask for other leave.</Notice>
+            <Notice>
+              Supporting documents are due by {fmtDate(leave.documentsDueBy)}. Send them before you return to work or ask for other leave.
+            </Notice>
           )}
         </Panel>
 
@@ -143,14 +179,29 @@ export default function DetailPage() {
             {isApprover && (
               <Panel title="Your decision">
                 <Label htmlFor="comment">Comment</Label>
-                <Textarea id="comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} aria-invalid={Boolean(fields.comment)} />
+                <Textarea
+                  id="comment"
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  aria-invalid={Boolean(fields.comment)}
+                />
                 <p className="mt-1.5 text-sm text-muted-foreground">Needed if you reject or ask for more information.</p>
                 <FieldError msg={fields.comment} />
                 <div className="mt-5 grid gap-2.5">
-                  <Button variant="success" disabled={busy} onClick={decide('approve')}><Check />Approve</Button>
+                  <Button variant="success" disabled={busy} onClick={decide('approve')}>
+                    <Check />
+                    Approve
+                  </Button>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <Button variant="outline" disabled={busy} onClick={decide('request-info', infoRequestSchema)}><MessageCircleQuestion />Ask</Button>
-                    <Button variant="destructive" disabled={busy} onClick={decide('reject', rejectSchema)}><X />Reject</Button>
+                    <Button variant="outline" disabled={busy} onClick={decide('request-info', infoRequestSchema)}>
+                      <MessageCircleQuestion />
+                      Ask
+                    </Button>
+                    <Button variant="destructive" disabled={busy} onClick={decide('reject', rejectSchema)}>
+                      <X />
+                      Reject
+                    </Button>
                   </div>
                 </div>
               </Panel>
@@ -160,11 +211,20 @@ export default function DetailPage() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="reply">Your reply</Label>
-                    <Textarea id="reply" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} aria-invalid={Boolean(fields.message)} />
+                    <Textarea
+                      id="reply"
+                      rows={3}
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      aria-invalid={Boolean(fields.message)}
+                    />
                     <FieldError msg={fields.message} />
                   </div>
                   {leave.isLong && picker}
-                  <Button variant="brand" disabled={busy} onClick={() => run(() => api.reply(id, form({ message: comment })))}><Send />Send reply</Button>
+                  <Button variant="brand" disabled={busy} onClick={() => run(() => api.reply(id, form({ message: comment })))}>
+                    <Send />
+                    Send reply
+                  </Button>
                 </div>
               </Panel>
             )}
@@ -172,14 +232,28 @@ export default function DetailPage() {
               <Panel title={leave.documentsPending ? 'Send the supporting documents' : 'Add more documents'}>
                 <div className="space-y-4">
                   {picker}
-                  <Button variant="brand" disabled={busy || files.length === 0} onClick={() => run(() => api.attach(id, form()))}><Upload />Upload</Button>
+                  <Button variant="brand" disabled={busy || files.length === 0} onClick={() => run(() => api.attach(id, form()))}>
+                    <Upload />
+                    Upload
+                  </Button>
                 </div>
               </Panel>
             )}
             {isOwner && (can('EDIT') || can('CANCEL')) && (
               <div className="flex flex-wrap gap-2.5">
-                {can('EDIT') && <Button asChild variant="outline"><Link to={`/leaves/${id}/edit`}><Pencil />Edit request</Link></Button>}
-                {can('CANCEL') && <Button variant="outline" className="text-destructive" disabled={busy} onClick={() => run(() => api.act(id, 'cancel'))}>Cancel request</Button>}
+                {can('EDIT') && (
+                  <Button asChild variant="outline">
+                    <Link to={`/leaves/${id}/edit`}>
+                      <Pencil />
+                      Edit request
+                    </Link>
+                  </Button>
+                )}
+                {can('CANCEL') && (
+                  <Button variant="outline" className="text-destructive" disabled={busy} onClick={() => run(() => api.act(id, 'cancel'))}>
+                    Cancel request
+                  </Button>
+                )}
               </div>
             )}
           </aside>
@@ -188,12 +262,18 @@ export default function DetailPage() {
 
         <Panel title="Documents">
           {leave.documents.length === 0 ? (
-            <p className="text-muted-foreground">{leave.isLong ? 'No documents attached yet.' : 'Leave of this length needs no documents.'}</p>
+            <p className="text-muted-foreground">
+              {leave.isLong ? 'No documents attached yet.' : 'Leave of this length needs no documents.'}
+            </p>
           ) : (
             <ul className="-my-1 divide-y">
               {leave.documents.map((d) => (
                 <li key={d.id}>
-                  <button type="button" onClick={() => api.openDocument(leave.id, d.id).catch(setError)} className="flex min-h-12 w-full items-center gap-3 rounded-md py-2 text-left transition-colors hover:bg-accent/60">
+                  <button
+                    type="button"
+                    onClick={() => api.openDocument(leave.id, d.id).catch(setError)}
+                    className="flex min-h-12 w-full items-center gap-3 rounded-md py-2 text-left transition-colors hover:bg-accent/60"
+                  >
                     <FileText className="size-5 shrink-0 text-brand" aria-hidden="true" />
                     <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                     <span className="font-mono text-xs text-muted-foreground">{Math.round(d.size / 1024) || 1} KB</span>
@@ -209,9 +289,16 @@ export default function DetailPage() {
             {leave.timeline.map((t, i) => (
               <li key={i} className="relative">
                 <span aria-hidden="true" className="absolute -left-[1.9rem] top-1.5 size-2.5 rounded-full bg-foreground ring-4 ring-card" />
-                <p><strong className="font-semibold">{ACTION_LABELS[t.action] ?? t.action}</strong> <span className="text-muted-foreground">by {t.actorName} ({t.actorRole})</span></p>
+                <p>
+                  <strong className="font-semibold">{ACTION_LABELS[t.action] ?? t.action}</strong>{' '}
+                  <span className="text-muted-foreground">
+                    by {t.actorName} ({t.actorRole})
+                  </span>
+                </p>
                 <p className="font-mono text-xs text-muted-foreground">{fmtDateTime(t.at)}</p>
-                {t.comment && <blockquote className="mt-2 rounded-md border-l-2 border-flame bg-secondary px-3 py-2 text-sm">{t.comment}</blockquote>}
+                {t.comment && (
+                  <blockquote className="mt-2 rounded-md border-l-2 border-flame bg-secondary px-3 py-2 text-sm">{t.comment}</blockquote>
+                )}
               </li>
             ))}
           </ol>

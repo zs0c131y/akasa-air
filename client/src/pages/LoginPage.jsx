@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../auth.jsx';
 import { ErrorBox, FieldError } from '../components.jsx';
 
-const DEMO = [
-  ['Employee', 'arjun.sharma@akasa.demo'],
-  ['Manager', 'rahul.mehta@akasa.demo'],
-  ['HOD', 'priya.nair@akasa.demo'],
+const PASSWORD = 'Password@123';
+const DEMO_GROUPS = [
+  ['HOD', [['Priya Nair', 'priya.nair']]],
+  ['Managers', [['Rahul Mehta', 'rahul.mehta'], ['Ananya Iyer', 'ananya.iyer']]],
+  ['Employees', [
+    ['Arjun Sharma', 'arjun.sharma'], ['Kavya Reddy', 'kavya.reddy'], ['Rohan Das', 'rohan.das'],
+    ['Sneha Kulkarni', 'sneha.kulkarni'], ['Imran Khan', 'imran.khan'], ['Meera Joshi', 'meera.joshi'],
+  ]],
 ];
 
 export default function LoginPage() {
@@ -15,12 +19,11 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const signIn = async (mail, pass) => {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      await login(mail, pass);
     } catch (err) {
       setError(err);
     } finally {
@@ -32,8 +35,25 @@ export default function LoginPage() {
     <main className="login">
       <h1>Leave Desk</h1>
       <p className="muted">Sign in to apply for leave or review requests.</p>
-      <form onSubmit={submit} noValidate>
-        <ErrorBox error={error} />
+      <section className="demo" aria-labelledby="demo-title">
+        <h2 id="demo-title">Try a demo account</h2>
+        <p className="muted">One click, no password needed.</p>
+        {DEMO_GROUPS.map(([group, people]) => (
+          <div key={group}>
+            <h3>{group}</h3>
+            <div className="demo-grid">
+              {people.map(([name, slug]) => (
+                <button key={slug} type="button" className="secondary" disabled={busy} onClick={() => signIn(`${slug}@akasa.demo`, PASSWORD)}>
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+      <ErrorBox error={error} />
+      <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} noValidate>
+        <h2>Or sign in with your own account</h2>
         <label htmlFor="email">Email</label>
         <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
         <FieldError msg={error?.fields?.email} />
@@ -42,15 +62,6 @@ export default function LoginPage() {
         <FieldError msg={error?.fields?.password} />
         <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
       </form>
-      <section className="demo">
-        <h2>Demo accounts</h2>
-        <p className="muted">Password for all: <code>Password@123</code></p>
-        {DEMO.map(([role, mail]) => (
-          <button key={mail} type="button" className="secondary" onClick={() => { setEmail(mail); setPassword('Password@123'); }}>
-            Fill in {role} ({mail})
-          </button>
-        ))}
-      </section>
     </main>
   );
 }

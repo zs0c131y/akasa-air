@@ -13,5 +13,5 @@
     "test": "npm test -w shared -w server"
   },
   "devDependencies": { "concurrently": "^9.0.0" },
-  "engines": { "node": ">=20.11" }
+  "engines": { "node": ">=20.12" }
 }

@@ -43,6 +43,7 @@ async function request(path, { method = 'GET', json, form, raw } = {}) {
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', json: { email, password } }),
   me: () => request('/auth/me'),
+  audit: (params) => request(`/audit?${new URLSearchParams(params)}`),
   list: (params) => request(`/leaves?${new URLSearchParams(params)}`),
   get: (id) => request(`/leaves/${id}`),
   obligations: () => request('/leaves/obligations'),

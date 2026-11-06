@@ -2,6 +2,13 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 
+// Load <repo>/.env if present (real environment variables take precedence).
+try {
+  process.loadEnvFile(path.join(root, '.env'));
+} catch {
+  /* no .env file: defaults apply */
+}
+
 /** Read lazily so tests can change env vars before first use. */
 export const config = {
   get port() {

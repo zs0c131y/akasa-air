@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { AppError } from '../errors.js';
 import { requireAuth, signToken } from '../middleware/auth.js';
+import { audit } from '../services/auditService.js';
 
 export const authRouter = Router();
 
@@ -17,8 +18,10 @@ authRouter.post('/login', async (req, res) => {
   }
   const user = await User.findOne({ email });
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    await audit(req, { action: 'LOGIN_FAILED', actor: user ? { id: String(user._id), name: user.name, role: user.role } : null, detail: `Failed sign-in for ${email}` });
     throw new AppError(401, 'BAD_CREDENTIALS', 'That email and password do not match.', 'Check for typos, or use one of the demo accounts.');
   }
+  await audit(req, { action: 'LOGIN', actor: { id: String(user._id), name: user.name, role: user.role } });
   res.json({ token: signToken(user), user: publicUser(user) });
 });
 

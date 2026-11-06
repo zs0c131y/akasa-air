@@ -9,6 +9,8 @@ import { config } from './config.js';
 import { AppError } from './errors.js';
 import { authRouter } from './routes/auth.js';
 import { leavesRouter } from './routes/leaves.js';
+import { auditRouter } from './routes/audit.js';
+import { audit } from './services/auditService.js';
 
 /** Builds the Express app (no listening, so tests can use it directly). */
 export function createApp() {
@@ -21,6 +23,7 @@ export function createApp() {
   );
   app.use('/api/auth', authRouter);
   app.use('/api/leaves', leavesRouter);
+  app.use('/api/audit', auditRouter);
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'That page of the API does not exist.')));
 
   const dist = config.clientDist;
@@ -33,7 +36,7 @@ export function createApp() {
   return app;
 }
 
-function errorHandler(err, _req, res, _next) {
+function errorHandler(err, req, res, _next) {
   let e = err;
   if (err instanceof ZodError) {
     e = new AppError(400, 'VALIDATION_FAILED', 'Some details need fixing.', 'Check the highlighted fields.', zodFields(err));
@@ -50,6 +53,9 @@ function errorHandler(err, _req, res, _next) {
   if (!(e instanceof AppError)) {
     console.error('[error]', err);
     e = new AppError(500, 'INTERNAL', 'Something went wrong on our side.', 'Please try again in a moment. If it keeps happening, contact support.');
+  }
+  if (req.user && (e.status === 403 || (e.status === 404 && req.originalUrl.startsWith('/api/leaves')))) {
+    audit(req, { action: 'ACCESS_DENIED', detail: `${req.method} ${req.originalUrl.split('?')[0]} -> ${e.status}` });
   }
   res.status(e.status).json({ error: { code: e.code, message: e.message, hint: e.hint, fields: e.fields } });
 }

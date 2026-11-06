@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { rejectSchema, infoRequestSchema, zodFields } from '@lms/shared';
 import { api } from '../api.js';
-import { ACTION_LABELS, Badges, ErrorBox, FieldError, StatusChip, fmtDate, fmtDateTime } from '../components.jsx';
+import { ACTION_LABELS, Badges, ErrorBox, ErrorScreen, FieldError, StatusChip, fmtDate, fmtDateTime } from '../components.jsx';
 import { useAuth } from '../auth.jsx';
 
 export default function DetailPage() {
@@ -18,7 +18,7 @@ export default function DetailPage() {
   const load = useCallback(() => api.get(id).then(setLeave).catch(setError), [id]);
   useEffect(() => { load(); }, [load]);
 
-  if (error && !leave) return <ErrorBox error={error} />;
+  if (error && !leave) return <ErrorScreen error={error} />;
   if (!leave) return <p className="muted">Loading…</p>;
 
   const can = (a) => leave.allowedActions.includes(a);

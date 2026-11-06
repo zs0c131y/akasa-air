@@ -211,3 +211,29 @@ describe('emergency leave', () => {
     expect(r.status).toBe(400);
   });
 });
+
+describe('audit log', () => {
+  it('records sign-ins, decisions, document views and denied access; only HOD can read it', async () => {
+    const r = await submit('arjun', { fromDate: day(330), toDate: day(331), reason: 'Audit check' });
+    await request(app).get(`/api/leaves/${r.body.id}`).set(as('ananya')); // other team's manager: denied (404)
+    await request(app).post(`/api/leaves/${r.body.id}/approve`).set(as('rahul')).send({ comment: 'ok' });
+    await request(app).post('/api/auth/login').send({ email: 'arjun.sharma@akasa.demo', password: 'wrong' });
+    await new Promise((res) => setTimeout(res, 200)); // denial entries are written without blocking the response
+
+    expect((await request(app).get('/api/audit').set(as('arjun'))).status).toBe(403);
+    expect((await request(app).get('/api/audit').set(as('rahul'))).status).toBe(403);
+    const log = await request(app).get('/api/audit?pageSize=100').set(as('hod'));
+    expect(log.status).toBe(200);
+    const actions = log.body.items.map((i) => i.action);
+    for (const a of ['LOGIN', 'LOGIN_FAILED', 'LEAVE_SUBMITTED', 'LEAVE_APPROVE', 'ACCESS_DENIED']) expect(actions).toContain(a);
+    const approve = log.body.items.find((i) => i.action === 'LEAVE_APPROVE' && i.entityId === r.body.id);
+    expect(approve).toMatchObject({ actorName: 'Rahul Mehta', fromStatus: 'PENDING_MANAGER', toStatus: 'APPROVED' });
+  });
+  it('is append-only', async () => {
+    const { AuditLog } = await import('../src/models/AuditLog.js');
+    await expect(AuditLog.deleteMany({})).rejects.toThrow(/append-only/);
+    const one = await AuditLog.findOne();
+    one.detail = 'tampered';
+    await expect(one.save()).rejects.toThrow(/append-only/);
+  });
+});

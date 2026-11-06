@@ -1,4 +1,6 @@
-import { STATUS_LABELS } from '@lms/shared';
+import { Component } from 'react';
+import { Link } from 'react-router-dom';
+import { STATUSES, STATUS_LABELS } from '@lms/shared';
 
 const ICONS = {
   PENDING_MANAGER: '◔',
@@ -36,6 +38,51 @@ export function ErrorBox({ error }) {
       <strong>{error.message}</strong>
       {error.hint && <div>{error.hint}</div>}
     </div>
+  );
+}
+
+/** Full-panel friendly screen for 403 / 404 / offline / unexpected errors. */
+export function ErrorScreen({ error }) {
+  const map = {
+    403: ['You do not have access to this page', 'Ask your manager if you think this is a mistake, or go back to your requests.'],
+    404: ['We could not find that', 'It may have been removed, or it may belong to someone else.'],
+    401: ['Please sign in again', 'Your session has ended.'],
+  };
+  const [title, hint] = error?.code === 'NETWORK'
+    ? ['You seem to be offline', 'Check your internet connection and reload the page.']
+    : map[error?.status] ?? ['Something went wrong', error?.hint || 'Please try again in a moment.'];
+  return (
+    <div className="card center" role="alert">
+      <h1>{title}</h1>
+      <p>{error?.message}</p>
+      <p className="muted">{hint}</p>
+      <Link className="button secondary" to="/">Back to my requests</Link>
+    </div>
+  );
+}
+
+/** Catches unexpected render errors so users never see a blank page or a stack trace. */
+export class ErrorBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <main className="card center" role="alert">
+        <h1>Something went wrong</h1>
+        <p className="muted">Please reload the page. Your submitted requests are safe.</p>
+        <button className="primary" onClick={() => window.location.assign('/')}>Reload</button>
+      </main>
+    );
+  }
+}
+
+/** Colour key shown above request lists. */
+export function StatusLegend() {
+  return (
+    <ul className="legend" aria-label="Status colour key">
+      {STATUSES.map((s) => <li key={s}><StatusChip status={s} /></li>)}
+    </ul>
   );
 }
 

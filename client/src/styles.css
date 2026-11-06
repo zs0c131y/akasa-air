@@ -62,8 +62,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .actions { border-top: 1px solid var(--line); margin-top: 1.5rem; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1rem 0; }
 .login { max-width: 420px; }
-.demo { margin-top: 2rem; border-top: 1px solid var(--line); }
-.demo button { display: block; width: 100%; margin-bottom: .5rem; text-align: left; font-size: .9rem; }
 @media (max-width: 560px) {
   body { font-size: 16px; }
   .row { grid-template-columns: 1fr; }
@@ -71,3 +69,27 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .who { width: 100%; }
 }
 @media (prefers-reduced-motion: no-preference) { .leave-card { transition: border-color .15s; } }
+
+/* Phase 2: colour coding, legend, audit, error states */
+.leave-card.card-PENDING_MANAGER { border-left-color: var(--amber); }
+.leave-card.card-PENDING_HOD { border-left-color: var(--blue); }
+.leave-card.card-INFO_REQUESTED { border-left-color: var(--purple); }
+.leave-card.card-APPROVED { border-left-color: var(--green); }
+.leave-card.card-REJECTED { border-left-color: var(--red); }
+.leave-card.card-CANCELLED { border-left-color: var(--grey); }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: .5rem 0 1rem; }
+.offline { background: var(--amber-bg); color: #4d3200; text-align: center; padding: .5rem 1rem; border-bottom: 1px solid var(--amber); font-weight: 600; }
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.filters input { min-width: 14rem; }
+.audit-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; display: grid; gap: .2rem; }
+.tag { display: inline-block; padding: .1rem .55rem; border-radius: 4px; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .02em; }
+.tag-good { background: var(--green-bg); color: var(--green); }
+.tag-bad { background: var(--red-bg); color: var(--red); }
+.tag-neutral { background: var(--grey-bg); color: var(--grey); }
+.small { font-size: .85rem; }
+.demo { margin: 1rem 0 1.5rem; }
+.demo h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: .9rem 0 .4rem; }
+.demo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+.demo-grid button { margin: 0; justify-content: center; }
+.center .button { margin-top: .5rem; }
+@media (max-width: 560px) { .topbar nav a { padding: .65rem .4rem; } .filters input, .filters select { width: 100%; } .filters label { width: 100%; } }

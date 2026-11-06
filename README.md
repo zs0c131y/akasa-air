@@ -55,7 +55,7 @@ Seed data has requests in every status, including long leaves waiting at the man
 - Documents: PDF/JPG/PNG, max 5 MB, up to 5 per request, type verified from file contents, stored on local disk and served only through an authenticated endpoint.
 
 ## Layout
-`shared/` validation rules used by client and server · `server/` Express API, Mongoose models, `workflow.js` (state machine), `services/` · `client/` React (Vite) UI.
+`shared/` validation rules used by client and server · `server/` Express API, Mongoose models, `workflow.js` (state machine), `services/` · `client/` React (Vite, Tailwind, shadcn-style components) UI with a landing page, light/dark theme and text-size control; see DESIGN.md.
 
 ## Documentation
 [DEPLOYMENT](DEPLOYMENT.md) · [WORKFLOW](WORKFLOW.md) · [API](API.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) · [TESTING](TESTING.md) · [DEMO script](DEMO.md) · [GLOSSARY](GLOSSARY.md) · [AI_USAGE](AI_USAGE.md) · [CHANGELOG](CHANGELOG.md)

@@ -14,9 +14,9 @@ describe('StatusChip', () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });
-  it('applies the status class used for colour coding', () => {
+  it('tags each status so it can be colour coded', () => {
     const { container } = render(<StatusChip status="APPROVED" />);
-    expect(container.firstChild).toHaveClass('chip-APPROVED');
+    expect(container.firstChild).toHaveAttribute('data-status', 'APPROVED');
   });
 });
 
@@ -42,9 +42,9 @@ describe('ErrorScreen', () => {
 
 describe('LoginPage', () => {
   it('signs in with one click and never displays a password', async () => {
-    render(<LoginPage />);
+    render(<MemoryRouter><LoginPage /></MemoryRouter>);
     expect(document.body.textContent).not.toMatch(/Password@/);
-    fireEvent.click(screen.getByRole('button', { name: 'Rahul Mehta' }));
+    fireEvent.click(screen.getByRole('button', { name: /Rahul Mehta/ }));
     await waitFor(() => expect(login).toHaveBeenCalledWith('rahul.mehta@akasa.demo', expect.any(String)));
   });
 });

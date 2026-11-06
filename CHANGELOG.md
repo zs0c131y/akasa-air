@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Full redesign: landing page, new sign-in, light/dark theme toggle, text-size control, Tailwind + shadcn-style components, self-hosted fonts; rewrote DESIGN.md.
 - Sundays are no longer counted as leave days (a Sunday-only request is refused; document due dates skip Sundays).
 - Design polish: design tokens, automatic dark theme, sticky header with brand mark and avatar, skip link, refined cards and forms; added DESIGN.md.
 - Security hardening: httpOnly cookie sessions with rotating refresh tokens, account lockout, rate limits, Helmet/CSP, CORS allowlist, operator-injection guard, request IDs and structured logs.

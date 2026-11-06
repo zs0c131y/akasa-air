@@ -1,51 +1,50 @@
 # Design
 
-Leave Desk is a work tool used by people who want to finish a task and leave. The design aims for calm, readable and predictable, not decorative.
+Leave Desk is sold as a product (leave management a team does not have to build) and used as a daily work tool. The design has to look credible on the landing page and stay out of the way inside the app.
 
-## Principles
-1. **Status is never colour alone.** Every status shows colour, an icon and a word (`StatusChip`). This also covers colour-blind users and print.
-2. **One action per screen.** Each page has one primary button; secondary actions are outlined, destructive ones are red.
-3. **Say what happened and what to do next.** Errors show a plain message plus a hint (`ErrorBox`, `ErrorScreen`).
-4. **Large targets.** Buttons and inputs are at least 44px tall.
-5. **Works without hover, mouse or a wide screen.**
+## Stack
+Vite + React 18, Tailwind CSS 3, and shadcn/ui-style components (Radix primitives, `class-variance-authority`, `tailwind-merge`) in `client/src/ui/`. Icons are Lucide. Fonts are self-hosted through Fontsource, so the strict Content-Security-Policy (`font-src 'self'`, no third-party requests) is untouched.
 
-## Tokens (`client/src/styles.css`)
-All colours, radii and shadows are CSS variables on `:root`, so a theme is a single block.
+This is deliberately not Next.js. The Express server serves the built client, so a single Node process hosts everything (Railway, Docker); Next.js would add a second server for a product with one public page.
 
-| Token group | Notes |
-|---|---|
-| Surfaces | `--bg`, `--surface`, `--surface-2`, `--line`, `--line-strong` |
-| Text | `--ink`, `--muted` (still 4.5:1 on its background) |
-| Brand | `--accent` (deep teal-blue), `--accent-hover`, `--focus` |
-| Status | amber, blue, purple, green, red, grey; each has a text colour and a tint, 4.5:1 or better together |
-| Shape | `--radius` 12px, `--radius-sm` 8px; two shadow levels |
-| Type | system sans for UI; a serif stack for headings and the brand to give some character without loading web fonts |
+## Direction
+Warm paper and ink, one accent, an editorial serif for big headlines and a precise sans for everything you read or click. The reference points were Linear and Cal.com for restraint, Stripe for clear product storytelling, and GOV.UK for plain language. The landing page shows the real product (a request card built from the app's own components) instead of illustrations.
 
-Dark theme is automatic via `prefers-color-scheme`; the status colours are re-picked (lighter text on dark tints), not just inverted.
+What it avoids on purpose: gradients, glows and blurred blobs, glassmorphism, emoji as icons, stock illustrations, invented logos, testimonials or statistics, and filler text.
 
-## Status colours
+## Type
+- Display: Instrument Serif, for page titles and landing headlines only.
+- Body and UI: Geist Variable.
+- Base size 17px. A text-size control (Standard, Larger, Largest) scales the whole interface because all sizes are `rem`.
+
+## Colour (CSS variables in `client/src/index.css`)
+- Neutrals are warm: paper `#faf8f4`-ish background in light, near-black warm grey in dark.
+- Primary action is ink (the foreground colour). The single brand accent is a deep teal, used for the brand mark, focus ring, key buttons and small highlights.
+- Status colours (amber, blue, purple, green, red, grey) each have a text colour and a tint, re-chosen for dark mode, and always appear with an icon and a word:
+
 | Status | Colour | Icon |
 |---|---|---|
-| Pending manager | Amber | ◔ |
-| Awaiting HOD | Blue | ◑ |
-| Info requested | Purple | ? |
-| Approved | Green | ✓ |
-| Rejected | Red | ✕ |
-| Cancelled | Grey | – |
+| Pending manager | Amber | Clock |
+| Awaiting HOD | Blue | Hourglass |
+| Info requested | Purple | Question |
+| Approved | Green | Check |
+| Rejected | Red | Cross |
+| Cancelled | Grey | Ban |
 
-Request cards repeat the colour as a left border. Badges mark long leave (blue), emergency (red) and documents due (amber).
+## Themes
+Light and dark, with a header button to flip between them. The first visit follows the operating system; the choice is then remembered. A tiny script (`public/theme-init.js`) applies the saved theme before first paint, so there is no flash. Text size is remembered the same way.
 
 ## Layout
-- Content column max 920px; forms 660px; sign-in 460px.
-- Sticky header with brand, navigation, and the signed-in person (initials avatar, role pill).
-- Request list = stacked cards; detail page = summary card, document list, timeline, then actions.
-- One breakpoint at 560px: forms go single column, button groups go full width, header wraps.
+- Landing: hero with a live-looking request, rules strip, three-step explainer, feature grid, roles, three ways to get started, FAQ, closing call to action.
+- Sign-in: form first, one-click demo accounts below it, each with a one-line description of what that person can show.
+- App: sticky header (brand, navigation, text size, theme, account menu); lists as cards with a status-coloured edge; detail pages with the decision panel beside the story; apply page with a live summary (day count, what happens next, document rule).
+- One breakpoint set (`sm`, `md`, `lg`); navigation becomes a scrolling row on phones.
 
-## Accessibility built into the design
-- Visible 3px focus ring on every control; skip-to-content link.
-- Labels attached to every input; errors announced with `role="alert"`.
-- `prefers-reduced-motion` turns transitions off. Print hides navigation and action buttons.
-- No web fonts or external assets, so the strict CSP stays tight and the page paints fast.
+## Accessibility built in
+- Visible focus ring everywhere, skip links, 44px touch targets, labels on every field, errors announced with `role="alert"`.
+- Colour is never the only signal; contrast is chosen for WCAG AA or better in both themes.
+- Motion is limited to a short entrance and small hover movement, and is disabled for `prefers-reduced-motion`.
+- The account and text-size menus use Radix with `modal={false}` so no inline style tags are injected (the CSP forbids them).
 
-## Possible next steps
-Text-size control, a high-contrast theme, and an automated axe audit (see backlog in the README).
+## Placeholders to fill before going public
+`client/src/site.js` has `CONTACT_EMAIL`. Empty, the "We run it for you" card links to the demo; set it and the card becomes a "Get in touch" email link. There are no prices on purpose; add a pricing section when real plans exist.

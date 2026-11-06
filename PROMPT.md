@@ -20,7 +20,7 @@ Approval routing:
 - Each user has `department`, `managerId`, and `role`. A manager cannot approve their own request or anyone outside their team.
 
 ## 2. Core features
-1. **Auth**: register (HOD-only invites or seeded users), login, logout, refresh, change password, forgot/reset password (token-based, mocked email via console/Mailhog-style adapter). JWT access token (short-lived) + refresh token in an httpOnly, SameSite, Secure cookie. Hash passwords with bcrypt/argon2. Account lockout after repeated failures.
+1. **Auth (complete, not a demo stub)**: HOD-only user invites (emailed one-time link to set password) plus seeded users, login, logout, silent refresh, change password, forgot/reset password (hashed, single-use, expiring token; mocked email via console/Mailhog-style adapter), email verification on invite acceptance. Short-lived JWT access token (in memory) + rotating refresh token in an httpOnly, Secure, SameSite cookie with reuse detection. Hash passwords with argon2 (or bcrypt cost 12), enforce a sensible password policy (length over complexity, breached-password check optional), account lockout and progressive delay after repeated failures, generic error messages to avoid user enumeration. "Active sessions" screen where a user can see and revoke devices. Optional TOTP-based MFA for managers and HOD. Auto-logout with a gentle, accessible warning before session expiry. Deactivating a user instantly revokes their sessions.
 2. **Leave types and policy** (configurable per department by HOD): Casual, Sick, Earned/Privileged, Comp-off, Unpaid, Maternity/Paternity. Each with annual quota, carry-forward cap, max consecutive days, min notice days, document required (e.g., medical certificate if sick > 2 days), half-day allowed.
 3. **Apply leave**: type, from/to dates, half-day (first/second half), reason, optional attachment (validated type/size, stored on disk or GridFS behind a storage interface), notify manager.
    - Count only working days: exclude weekends and department holidays.
@@ -57,21 +57,55 @@ Responsible AI requirements: validate all LLM output with a schema (zod) and fal
 ## 5. Security
 Helmet + strict CSP, CORS allowlist from env, CSRF protection for cookie auth, rate limiting (stricter on auth and AI routes), `express-mongo-sanitize`/input sanitization against NoSQL injection, XSS-safe rendering, password policy, secure cookies, RBAC middleware plus resource-level ownership checks (no IDOR: every query scoped by role/team), file upload validation, secrets only via env, no sensitive data in logs, dependency audit in CI, least-privilege DB user. Include a short `SECURITY.md` listing threats and mitigations (OWASP Top 10 mapping).
 
-## 6. Quality and testing
-- Unit tests for: working-day calculation, overlap detection, balance/ledger math, policy rules, state transitions (Vitest/Jest).
-- Integration tests for the main API flows with an in-memory/test MongoDB (supertest): apply -> approve -> balance deducted; reject restores; cancel; double-approve prevented; RBAC denials; overlap rejected.
-- A few frontend component tests and one Playwright happy-path e2e if time permits.
+## 6. Quality and testing (treat as a first-class deliverable)
+- **Unit tests** (Vitest/Jest): working-day calculation (weekends, holidays, half-days, year boundaries, leap years), overlap detection, balance/ledger math, policy rules per leave type, state-transition map (every legal and illegal transition), date/timezone handling, LLM output schema validation and fallback.
+- **Auth tests**: register/invite, login success/failure, lockout after N failures, password hashing, JWT expiry, refresh-token rotation and **reuse detection** (reused token revokes the whole family), logout invalidation, password reset token single-use and expiry, cookie flags (httpOnly, Secure, SameSite), CSRF rejection, brute-force rate limiting, session listing and revocation.
+- **Authorization tests**: a full role x endpoint matrix (employee/manager/HOD/anonymous) asserting 200/401/403/404 correctly, IDOR attempts (employee reading another's leave, manager approving outside their team, manager approving own request), privilege escalation attempts via body tampering (e.g., sending `role` or `employeeId`).
+- **Integration tests** (supertest + in-memory/test MongoDB replica set): apply -> approve -> balance deducted; reject restores; cancel restores; double-approve prevented by version check; concurrent approvals race; overlap rejected; insufficient balance rejected; escalation job; carry-forward job; audit entries written for every change; pagination/filter correctness.
+- **Security tests**: NoSQL injection payloads, XSS payloads in reason/comment fields, oversized bodies, malicious file uploads, prompt-injection strings against the AI endpoints.
+- **Frontend tests** (Vitest + Testing Library): forms, validation messages, role-based route guards, calendar interactions, approval queue; mock the API with MSW.
+- **E2E** (Playwright): employee applies -> manager approves -> employee sees status and balance; HOD overrides; login/logout/session expiry; run in Chromium and one mobile viewport; include keyboard-only paths.
+- **Accessibility tests**: axe-core on every main page in light, dark and high-contrast themes; Lighthouse CI thresholds (a11y >= 95, performance >= 85, best-practices >= 95).
+- Coverage target 80%+ on services and 100% on the workflow/ledger logic; coverage report in CI; fail CI below thresholds.
 - ESLint + Prettier + Husky/lint-staged, strict TypeScript, GitHub Actions workflow running lint, typecheck and tests.
 - **Seed script** creating: 1 HOD, 2 managers, 6+ employees across a department, leave types/policies, holidays, and realistic sample leave history, so the demo looks alive immediately. Print demo credentials.
 
-## 7. UX details that win points
-- Clear status chips/colors, timeline of each request (applied, approved by X with comment), skeleton loaders, empty states with calls to action.
-- Apply-leave form shows live: working days counted, remaining balance after this request, conflict warnings, policy hints.
-- One-click approve/reject from the manager queue with inline comment.
-- Global search/filter, keyboard shortcuts optional, polished consistent design system, brand-neutral but professional (airline-style clean look is fine).
+## 7. UI/UX and design direction (this is a major judging factor)
+**Goal**: a distinctive, calm, premium interface that looks designed by a human product designer, and that a 22-year-old and a 62-year-old can both use without help.
+
+**Research first**: before writing UI code, study the *principles* (not layouts to copy) of: Awwwards site-of-the-day winners and honorable mentions for typography and rhythm, Linear and Cal.com for product polish, Stripe and Vercel for clarity, Notion Calendar and Google Calendar for scheduling patterns, Airbnb for approachable forms, and GOV.UK Design System plus the WCAG 2.2 / WAI patterns for accessibility. Summarize the chosen direction in `DESIGN.md` (type scale, color tokens, spacing, motion, component rules) and follow it.
+
+**Anti-"AI slop" rules (hard constraints)**:
+- No purple/blue-pink gradients, no glowing blobs, no generic glassmorphism, no neon-on-dark by default, no stock "SaaS hero" with a gradient headline.
+- No emoji as icons. Use one consistent icon set (Lucide or Phosphor), same stroke weight.
+- No lorem ipsum, "John Doe", or placeholder numbers. Seed data must be realistic (Indian names, real-sounding departments, believable dates).
+- No default, unstyled component-library look. Customize tokens so it does not look like stock shadcn/MUI.
+- No decorative clutter: every element earns its place. No more than one accent color plus semantic status colors.
+- No fake testimonials, fake metrics, or filler marketing copy. Microcopy must be human, plain and specific ("Your manager Priya will review this, usually within a day").
+
+**Visual system**:
+- Typography: a characterful display face for headings (e.g., a refined serif such as Fraunces or Newsreader) paired with a highly legible sans for UI (e.g., Inter, Source Sans 3 or Atkinson Hyperlegible). Fluid type scale with `clamp()`, generous line-height (1.5-1.7), body text at least 16px (default 17-18px), no light-weight thin fonts for body.
+- Color: define semantic design tokens as CSS variables (`--bg`, `--surface`, `--text`, `--muted`, `--accent`, `--success`, `--warning`, `--danger`). Warm, slightly off-white neutrals with deep ink text; one confident brand accent; muted, harmonious status colors. Support **light, dark and a high-contrast theme**, respecting `prefers-color-scheme` and `prefers-contrast`, with a visible theme switcher.
+- Layout: 8px spacing grid, strong alignment, generous whitespace, clear visual hierarchy, cards used sparingly (prefer dividers and spacing), responsive from 320px to ultra-wide. Considered empty, loading (skeletons) and error states.
+- Motion: subtle, purposeful (page transitions, calendar range selection, status changes, number count-ups), 150-300ms ease-out. Respect `prefers-reduced-motion` fully (no motion at all). No parallax, no autoplaying loops.
+- Data viz: accessible charts (not color-only, patterns/labels, readable axes, table fallback), balance shown as clear rings/bars with numbers.
+- Signature touches: a beautiful, readable calendar as the hero of the product (range selection by click/drag and by keyboard, holidays and team leave overlaid), a request timeline, and a satisfying approve/reject interaction with undo.
+
+**Accessibility for all ages (WCAG 2.2 AA minimum, aim for AAA on text contrast)**:
+- Contrast: body text 7:1 where possible, UI components and focus indicators at least 3:1. Never convey status by color alone; use text label + icon + color.
+- Keyboard: everything operable by keyboard, logical tab order, visible 2-3px focus ring, skip-to-content link, no keyboard traps, shortcuts optional and discoverable.
+- Screen readers: semantic HTML first (landmarks, headings in order, real buttons/links/labels), ARIA only where needed, live regions for toasts and async results, accessible names on icon buttons, accessible dialogs (focus trap and return), data tables with proper headers, calendar with a list/table alternative.
+- Touch and motor: targets at least 44x44px, generous spacing, no precision-dependent gestures, no hover-only actions, drag interactions always have a button/keyboard alternative.
+- Readability for older and low-vision users: a text-size control (A / A+ / A++) that scales via `rem`, works at 200% browser zoom and 400% reflow without horizontal scroll, avoid truncating important text, plain language at roughly grade 8 reading level, consistent navigation, short labelled steps instead of dense screens.
+- Cognitive ease: one primary action per screen, forms with visible (not placeholder-only) labels, helpful inline validation with specific fix instructions, confirmation summaries before submit, undo for approve/reject/cancel, no time-limited actions without warning, consistent terminology.
+- Date inputs: allow typing dates in addition to picking; unambiguous formats ("Fri, 14 Nov 2026"); show working-day count in words.
+- Internationalization-ready: externalized strings, `lang` attribute, support RTL-safe layout, and relative/absolute date display with timezone awareness.
+- Pass automated checks: eslint-plugin-jsx-a11y, axe-core in tests, Lighthouse accessibility score of 95+, and manual checks with keyboard-only, screen reader (NVDA/VoiceOver) and zoom. Document results in `ACCESSIBILITY.md`.
+
+**Core screens to design with care**: login/reset, employee home (balances, upcoming, quick "Apply leave"), apply-leave flow (live working-day count, balance-after, conflict hints, policy tips), my leaves with timeline, manager approval queue (inline comment, bulk actions, team conflict view), team/department calendar, HOD analytics and policy/holiday admin, notification center, profile/settings (theme, text size, notification prefs, sessions).
 
 ## 8. Deliverables
-- Monorepo: `/server`, `/client`, root `docker-compose.yml`, `.env.example` files, `README.md` (overview, architecture diagram, ER/collection diagram, setup in under 5 commands, API summary, design decisions and tradeoffs, scalability and security notes, AI/Responsible AI section, known limitations and next steps), `SECURITY.md`, `RESPONSIBLE_AI.md`, Postman collection or OpenAPI file.
+- Monorepo: `/server`, `/client`, root `docker-compose.yml`, `.env.example` files, `README.md` (overview, architecture diagram, ER/collection diagram, setup in under 5 commands, API summary, design decisions and tradeoffs, scalability and security notes, AI/Responsible AI section, known limitations and next steps), `SECURITY.md`, `RESPONSIBLE_AI.md`, `DESIGN.md`, `ACCESSIBILITY.md`, `TESTING.md` (test strategy, how to run, coverage), Postman collection or OpenAPI file.
 - A 3-5 minute demo script as `DEMO.md` walking: employee applies -> manager sees conflict warning and approves -> balance updates -> HOD views analytics and policy assistant answers with citations.
 
 ## 9. How to work

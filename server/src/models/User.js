@@ -9,6 +9,9 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ROLES, required: true },
     /** The manager (or HOD, for managers) this user reports to. */
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    /** Consecutive failed sign-ins; the account locks temporarily after too many. */
+    failedLogins: { type: Number, default: 0 },
+    lockUntil: { type: Date, default: null },
     department: { type: String, default: 'Operations' },
   },
   { timestamps: true },

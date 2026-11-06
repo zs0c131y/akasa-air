@@ -10,7 +10,7 @@
     "start": "npm start -w server",
     "dev": "concurrently -n server,client \"npm run dev -w server\" \"npm run dev -w client\"",
     "seed": "npm run seed -w server",
-    "test": "npm test -w shared -w server"
+    "test": "npm test -w shared -w server -w client"
   },
   "devDependencies": { "concurrently": "^9.0.0" },
   "engines": { "node": ">=20.12" }

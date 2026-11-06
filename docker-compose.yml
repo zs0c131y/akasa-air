@@ -17,6 +17,7 @@ services:
       MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
       JWT_SECRET: change-me-in-real-deployments
       DATA_DIR: /data
+      COOKIE_SECURE: "false" # set to true (default) when served over HTTPS
     ports:
       - "4000:4000"
     volumes:

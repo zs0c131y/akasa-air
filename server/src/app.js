@@ -7,21 +7,26 @@ import { ZodError } from 'zod';
 import { zodFields, MAX_FILE_BYTES, MAX_FILES } from '@lms/shared';
 import { config } from './config.js';
 import { AppError } from './errors.js';
-import { authRouter } from './routes/auth.js';
+import { createAuthRouter } from './routes/auth.js';
 import { leavesRouter } from './routes/leaves.js';
 import { auditRouter } from './routes/audit.js';
 import { audit } from './services/auditService.js';
+import { securityHeaders, corsAllowlist, apiLimiter, rejectOperatorKeys, requestLogger } from './middleware/security.js';
 
 /** Builds the Express app (no listening, so tests can use it directly). */
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  if (config.trustProxy) app.set('trust proxy', config.trustProxy);
+  app.use(requestLogger);
+  app.use(securityHeaders());
   app.use(express.json({ limit: '100kb' }));
 
   app.get('/health', (_req, res) =>
     res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'up' : 'down' }),
   );
-  app.use('/api/auth', authRouter);
+  app.use('/api', corsAllowlist, apiLimiter(), rejectOperatorKeys);
+  app.use('/api/auth', createAuthRouter());
   app.use('/api/leaves', leavesRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'That page of the API does not exist.')));

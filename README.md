@@ -12,7 +12,7 @@ macOS / Linux / Windows PowerShell:
 npm run setup
 npm start
 ```
-Open http://localhost:4000. If `MONGODB_URI` is not set, an embedded MongoDB starts automatically (data kept in `./data`; the first run downloads the MongoDB binary, so it needs internet once). Demo data is seeded on first start.
+Open http://localhost:4000. To use your own MongoDB (e.g. Atlas) put `MONGODB_URI=...` in a `.env` file in the repo root (git-ignored; see `.env.example`; allow your IP in Atlas Network Access). If it is not set, an embedded MongoDB starts automatically (data kept in `./data`; the first run downloads the MongoDB binary, so it needs internet once). Demo data is seeded on first start.
 
 ### Option 2 — Docker
 ```
@@ -57,5 +57,8 @@ Seed data has requests in every status, including long leaves waiting at the man
 ## Layout
 `shared/` validation rules used by client and server · `server/` Express API, Mongoose models, `workflow.js` (state machine), `services/` · `client/` React (Vite) UI.
 
-## Known limitations (so far)
-Basic JWT in session storage and no login lockout/rate limiting yet; no email notifications; the UI has been built but not yet browser-tested or accessibility-audited.
+## Documentation
+[WORKFLOW](WORKFLOW.md) · [API](API.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) · [TESTING](TESTING.md) · [DEMO script](DEMO.md) · [GLOSSARY](GLOSSARY.md) · [AI_USAGE](AI_USAGE.md) · [CHANGELOG](CHANGELOG.md)
+
+## Known limitations
+Demo accounts share one password and one-click demo sign-in is on the login page (remove for real use); no email notifications; no Playwright end-to-end tests or automated accessibility audit yet; no OpenAPI page (see API.md); uploaded files are stored on local disk and not virus-scanned; no password reset or MFA.

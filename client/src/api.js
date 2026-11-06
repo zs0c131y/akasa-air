@@ -1,7 +1,4 @@
-const TOKEN_KEY = 'lms_token';
-
-export const getToken = () => sessionStorage.getItem(TOKEN_KEY);
-export const setToken = (t) => (t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY));
+// Sessions live in httpOnly cookies set by the server; no token is ever stored in JavaScript.
 
 export class ApiError extends Error {
   constructor({ code, message, hint, fields, status }) {
@@ -10,10 +7,10 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = 'GET', json, form, raw } = {}) {
-  const headers = {};
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+let refreshing = null;
+
+async function request(path, { method = 'GET', json, form, raw, retry = true } = {}) {
+  const headers = { 'X-Requested-With': 'lms' };
   let body;
   if (json) {
     headers['Content-Type'] = 'application/json';
@@ -29,6 +26,16 @@ async function request(path, { method = 'GET', json, form, raw } = {}) {
       hint: 'Check your internet connection and try again.',
     });
   }
+  if (res.status === 401 && retry && (!path.startsWith('/auth/') || path === '/auth/me')) {
+    // Access token expired: renew it once (shared between parallel calls), then retry.
+    refreshing ??= request('/auth/refresh', { method: 'POST', retry: false }).finally(() => { refreshing = null; });
+    try {
+      await refreshing;
+      return request(path, { method, json, form, raw, retry: false });
+    } catch {
+      /* fall through to the original 401 */
+    }
+  }
   if (raw && res.ok) return res;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
@@ -43,6 +50,7 @@ async function request(path, { method = 'GET', json, form, raw } = {}) {
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', json: { email, password } }),
   me: () => request('/auth/me'),
+  logout: () => request('/auth/logout', { method: 'POST' }),
   audit: (params) => request(`/audit?${new URLSearchParams(params)}`),
   list: (params) => request(`/leaves?${new URLSearchParams(params)}`),
   get: (id) => request(`/leaves/${id}`),

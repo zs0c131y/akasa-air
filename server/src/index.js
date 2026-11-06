@@ -3,7 +3,13 @@ import { connectDb, disconnectDb } from './db.js';
 import { createApp } from './app.js';
 import { seedIfEmpty, DEMO_USERS } from './seed.js';
 
-if (!process.env.JWT_SECRET) console.warn('[config] JWT_SECRET not set; using an insecure development default.');
+if (!process.env.JWT_SECRET) {
+  if (config.isProd) {
+    console.error('[config] JWT_SECRET must be set in production. Refusing to start.');
+    process.exit(1);
+  }
+  console.warn('[config] JWT_SECRET not set; using an insecure development default.');
+}
 
 await connectDb();
 if (config.seedOnStart && (await seedIfEmpty())) console.log('[seed] Demo data created.');

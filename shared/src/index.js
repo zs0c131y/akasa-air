@@ -286,7 +286,7 @@ export const signupSchema = z
     name: z
       .string({ required_error: 'Please tell us your name.' })
       .trim()
-      .min(2, 'Please enter your full name.')
+      .min(3, 'Please enter your full name (at least 3 letters).')
       .max(100, 'Please keep your name under 100 characters.'),
     email: emailField,
     password: z.string({ required_error: 'Please choose a password.' }),

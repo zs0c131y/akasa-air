@@ -16,7 +16,7 @@ export function Brand({ className, compact = false }) {
     <span className={cn('inline-flex items-center gap-3', className)}>
       <img src="/brand/akasa-air-logo.png" alt="" width="38" height="26" className="h-[1.6rem] w-auto shrink-0" />
       <span className="flex items-baseline gap-2.5 leading-none">
-        <span className="text-[1.05rem] font-bold tracking-tight">Akasa Air</span>
+        <span className="whitespace-nowrap text-[1.05rem] font-bold tracking-tight">Akasa Air</span>
         {!compact && <span aria-hidden="true" className="h-4 w-px self-center bg-foreground/30" />}
         {!compact && <span className="font-display text-[1.45rem] leading-none tracking-tight">{PRODUCT_NAME}</span>}
       </span>

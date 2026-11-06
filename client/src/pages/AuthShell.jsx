@@ -7,27 +7,29 @@ import { Brand, FieldError } from '../components.jsx';
 import { ThemeToggle } from '../theme.jsx';
 import { Button } from '../ui/button.jsx';
 import { Input, Label } from '../ui/input.jsx';
+import { AuthPanel } from './AuthPanel.jsx';
 
-/** Page frame shared by sign up, forgot password, reset and verify: header, a narrow column, a heading. */
-export function AuthShell({ kicker, title, intro, children, back = true }) {
+/**
+ * Page frame shared by sign up, forgot password, reset and verify: header, a heading and the form. From lg up the form
+ * sits beside a dark panel (`panel` picks which); on phones the panel is hidden and the form stays first.
+ */
+export function AuthShell({ kicker, title, intro, children, back = true, panel }) {
   const signedIn = Boolean(useAuth()?.user);
-  const body = (
-    <>
-      {back && !signedIn && (
-        <Link to="/login" className="mb-8 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" aria-hidden="true" /> Back to sign in
-        </Link>
-      )}
-      <div className="max-w-md">
-        {kicker && <p className="kicker mb-2.5">{kicker}</p>}
-        <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">{title}</h1>
-        {intro && <p className="mt-2.5 text-muted-foreground">{intro}</p>}
-        <div className="mt-7 rounded-lg border bg-card p-5 shadow-soft sm:p-6">{children}</div>
-      </div>
-    </>
+  const back_ = back && !signedIn && (
+    <Link to="/login" className="mb-8 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <ArrowLeft className="size-4" aria-hidden="true" /> Back to sign in
+    </Link>
+  );
+  const column = (
+    <div className="max-w-md lg:max-w-lg">
+      {kicker && <p className="kicker mb-2.5">{kicker}</p>}
+      <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">{title}</h1>
+      {intro && <p className="mt-2.5 text-muted-foreground">{intro}</p>}
+      <div className="mt-7 rounded-lg border bg-card p-5 shadow-soft sm:p-6">{children}</div>
+    </div>
   );
   // Signed in, the app shell already supplies the header and main area.
-  if (signedIn) return <section>{body}</section>;
+  if (signedIn) return <section>{column}</section>;
   return (
     <div className="min-h-screen">
       <header className="border-b">
@@ -39,7 +41,11 @@ export function AuthShell({ kicker, title, intro, children, back = true }) {
         </div>
       </header>
       <main id="content" className="container pb-24 pt-8 sm:pt-12">
-        {body}
+        {back_}
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          {column}
+          {panel && <AuthPanel variant={panel} />}
+        </div>
       </main>
     </div>
   );

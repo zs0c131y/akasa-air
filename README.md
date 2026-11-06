@@ -2,7 +2,7 @@
 
 Employees ask for leave. Managers approve, reject or ask for more information. For leave of **more than 3 days in a row**, the system requires a supporting document and **two approvals: the Manager, then the HOD**.
 
-Built as a MERN application in plain JavaScript for a placement hackathon problem statement. Not affiliated with Akasa Air.
+Built by one developer, alone, as an individual placement hackathon project from a problem statement: a MERN application in plain JavaScript. Not affiliated with Akasa Air.
 
 **In this README:** [System design](#system-design) · [Tools and tech](#tools-and-tech) · [How to run](#how-to-run) · [Features](#features) · [Future goals](#future-goals) · [Demo accounts](#demo-accounts) · [Rules and assumptions](#rules-and-assumptions) · [Documentation](#documentation) · [Known limitations](#known-limitations)
 
@@ -68,6 +68,12 @@ More detail: [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.
 ---
 
 ## How to run
+
+### Already hosted
+
+The app is live at **https://akasa.adarsh.run/**. Open it and click any person on the sign-in page to try it (no sign-up needed). To run it yourself instead, use one of the options below.
+
+### Run it yourself
 
 **Prerequisite:** Node.js 20.12 or newer (tested on Node 24). Docker is optional.
 

@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
 
   if (state === 'checking') {
     return (
-      <AuthShell kicker="Password" title="One moment" back={false}>
+      <AuthShell panel="reset" kicker="Password" title="One moment" back={false}>
         <p role="status" className="text-muted-foreground">
           Checking your link.
         </p>
@@ -71,6 +71,7 @@ export default function ResetPasswordPage() {
   if (state === 'expired') {
     return (
       <AuthShell
+        panel="reset"
         kicker="Password"
         title="This link has expired"
         intro="Links to choose a new password only work for a short while, and only once."
@@ -91,7 +92,7 @@ export default function ResetPasswordPage() {
 
   if (state === 'done') {
     return (
-      <AuthShell kicker="Password" title="Password changed" back={false}>
+      <AuthShell panel="reset" kicker="Password" title="Password changed" back={false}>
         <div className="space-y-4">
           <CircleCheck className="size-8 text-status-green-fg" aria-hidden="true" />
           <p role="status">Your new password is saved. Use it the next time you sign in.</p>
@@ -104,7 +105,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthShell kicker="Password" title="Choose a new password" back={false}>
+    <AuthShell panel="reset" kicker="Password" title="Choose a new password" back={false}>
       <ErrorBox error={error} className="mb-5" />
       <form onSubmit={submit} noValidate className="space-y-5">
         <PasswordField

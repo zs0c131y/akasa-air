@@ -28,6 +28,7 @@ export default function VerifyEmailPage() {
 
   return (
     <AuthShell
+      panel="verify"
       kicker="Email"
       title={state === 'checking' ? 'One moment' : state === 'done' ? 'Email confirmed' : 'We could not confirm that link'}
       back={false}

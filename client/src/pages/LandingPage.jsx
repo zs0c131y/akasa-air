@@ -360,15 +360,15 @@ function Demo() {
 function Offer() {
   const third = CONTACT_EMAIL
     ? [
-        'If you’d rather not host it, write to us and we’ll talk about setting it up for your team.',
+        'Want it hosted for your organisation? I built Layover on my own, so get in touch and we can talk it through.',
         <Button key="c" asChild variant="outline">
           <a href={`mailto:${CONTACT_EMAIL}`}>
-            Email us <ArrowUpRight />
+            Get in touch <ArrowUpRight />
           </a>
         </Button>,
       ]
     : [
-        'If you’d rather not host it, we can talk about setting it up for your team. Until a contact address is listed here, the demo is the place to start.',
+        'Layover is an individual hackathon project, so there is no hosted service to sign up for. The demo above shows everything it does.',
         <Button key="c" asChild variant="outline">
           <a href="#demo">Start with the demo</a>
         </Button>,
@@ -390,7 +390,7 @@ function Offer() {
         docker compose up
       </code>,
     ],
-    ['Have it run for you', ...third],
+    ['Want it hosted?', ...third],
   ];
   return (
     <section aria-labelledby="offer-title" className="py-20 lg:py-28">
@@ -526,8 +526,8 @@ function Footer() {
       </div>
       <div className="border-t border-border">
         <p className="container py-5 text-center text-[0.8rem] leading-relaxed text-muted-foreground">
-          Not affiliated with Akasa Air. Built as a placement hackathon project, from a problem statement. The name and logo belong to their
-          owners.
+          Not affiliated with Akasa Air. Built by one developer as an individual placement hackathon project, from a problem statement. The
+          name and logo belong to their owners.
         </p>
         <p className="container pb-5 text-center text-sm text-muted-foreground">
           Built by{' '}

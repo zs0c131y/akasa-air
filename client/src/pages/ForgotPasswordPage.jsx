@@ -37,7 +37,12 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthShell kicker="Password" title="Forgot your password?" intro="Give us your email and we will send a link to choose a new one.">
+    <AuthShell
+      panel="forgot"
+      kicker="Password"
+      title="Forgot your password?"
+      intro="Give us your email and we will send a link to choose a new one."
+    >
       {message ? (
         <div className="space-y-4">
           <MailCheck className="size-8 text-brand" aria-hidden="true" />

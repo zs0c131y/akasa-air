@@ -1,6 +1,6 @@
 # Design
 
-Layover is Akasa Air's leave desk. People use it to ask for time off; managers and the head of department use it to answer. It is also a product we can show to other teams, so the public page has to explain itself and let people try it in one click.
+Layover is Akasa Air's leave desk. People use it to ask for time off; managers and the head of department use it to answer. It is an individual hackathon project that anyone should be able to try, so the public page has to explain itself and let people try it in one click.
 
 This file is the spec for the interface. Read it before changing a screen.
 
@@ -9,11 +9,11 @@ Vite + React 18 (plain JavaScript), Tailwind CSS 3, shadcn/ui-style components i
 
 ## Where the look comes from
 Three sources, mixed:
-1. **The first redesign we shipped**: warm off-white paper, near-black ink, rounded white cards with hairline borders, status chips with icon + word.
-2. **A product page we liked (Tessera)**: a dark hero built around a real piece of product UI that moves, then calm light sections with plain-spoken headlines, flat illustrated people, four-up value rows with a coloured top rule, numbered steps, mock UI panels beside short copy, a "pick a seat" demo picker, small monospace labels.
+1. **The first redesign I shipped**: warm off-white paper, near-black ink, rounded white cards with hairline borders, status chips with icon + word.
+2. **A product page I liked (Tessera)**: a dark hero built around a real piece of product UI that moves, then calm light sections with plain-spoken headlines, flat illustrated people, four-up value rows with a coloured top rule, numbered steps, mock UI panels beside short copy, a "pick a seat" demo picker, small monospace labels.
 3. **Akasa Air's colour**: orange. It is the only accent.
 
-What we do not do: gradients, glows, blobs, glassmorphism, emoji as icons, stock illustration, invented customer logos, invented statistics or testimonials, lorem ipsum, centred-everything template layouts, or icon-in-a-rounded-square feature tiles.
+What I do not do: gradients, glows, blobs, glassmorphism, emoji as icons, stock illustration, invented customer logos, invented statistics or testimonials, lorem ipsum, centred-everything template layouts, or icon-in-a-rounded-square feature tiles.
 
 ## Brand
 - Header lockup: Akasa Air logo (file at `client/public/brand/akasa-air-logo.png`, the official mark on a transparent background) + "Akasa Air", then a thin divider and "Layover". `Brand` in `components.jsx`.
@@ -67,4 +67,4 @@ Visible focus ring, skip link, 44px touch targets, labelled fields, errors with 
 Public: `/` landing, `/login` sign-in with one-click demo people. Signed in: `/apply`, `/leaves/:id/edit`, `/mine`, `/queue`, `/team`, `/leaves/:id`, `/holidays`, `/audit`.
 
 ## Placeholders to fill before going public
-`client/src/site.js` has `CONTACT_EMAIL`. Empty, the "have it run for you" card links to the demo. There are no prices on purpose.
+`client/src/site.js` has `CONTACT_EMAIL`. Empty, the "hosted" card links to the demo. There are no prices on purpose.

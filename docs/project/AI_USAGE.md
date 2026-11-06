@@ -1,5 +1,7 @@
 # How AI tools were used
 
+This is an individual project. One developer worked alone, with AI tools as the only help.
+
 **Tool:** Claude Code (an AI coding agent running in the terminal, model Claude Sonnet 5.5), driven by one structured "master prompt" (`PROMPT.md`) written beforehand and refined by the developer through chat.
 
 ## Process

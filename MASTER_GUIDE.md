@@ -8,7 +8,7 @@ Read Parts 1 to 4 first. Part 9 is the question bank. If you remember only one p
 
 ## Part 1. The project in one minute
 
-**Layover** is an employee leave management web app for Akasa Air teams (built for a placement hackathon problem statement; not affiliated with the airline).
+**Layover** is an employee leave management web app (built by one developer, working alone with AI tools, as an individual placement hackathon project from a problem statement; not affiliated with Akasa Air).
 
 - An **employee** asks for leave, attaches documents when needed, and follows the status.
 - A **manager** sees the requests of their team, approves, rejects (with a reason), or asks for more information.
@@ -575,7 +575,8 @@ Automated browser (end-to-end) tests, leave types (sick, casual) with separate q
 
 ## Part 11. AI usage, said honestly
 
-- The code was written by AI coding agents (Claude, including several parallel sub-agents), steered by a written build prompt and by decisions you made in chat (plain JavaScript, emergency leave, holidays by location, 30-day allowance, the "in a row" rule, the manager-away shortcut, the look of the site).
+- The code was written by AI coding agents (Claude, including several parallel sub-agents), steered by a written build prompt and by decisions the developer made in chat (plain JavaScript, emergency leave, holidays by location, 30-day allowance, the "in a row" rule, the manager-away shortcut, the look of the site).
+- One developer worked alone on this, with AI tools as the only help; there was no team.
 - It was **verified** by automated tests (unit, API integration, security, component), linting and formatting checks, and by running the app in a browser. Not every line was read by a human; say that plainly.
 - Mistakes the AI made and how they were found are listed in `docs/project/AI_USAGE.md` (for example, a database index clash that would have crashed deployment, found from the dev log; a missing import found by the linter).
 - No GPT/Codex models were used.

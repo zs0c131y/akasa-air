@@ -50,7 +50,12 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <AuthShell kicker="Create an account" title={done.needsVerification ? 'Check your email' : 'Your account is ready'} back={false}>
+      <AuthShell
+        panel="signup"
+        kicker="Create an account"
+        title={done.needsVerification ? 'Check your email' : 'Your account is ready'}
+        back={false}
+      >
         {done.needsVerification ? (
           <div className="space-y-4">
             <MailCheck className="size-8 text-brand" aria-hidden="true" />
@@ -94,6 +99,7 @@ export default function SignupPage() {
 
   return (
     <AuthShell
+      panel="signup"
       kicker="Create an account"
       title="Join Layover"
       intro="Use your work email. The Head of Department will set you up with a manager before you apply."

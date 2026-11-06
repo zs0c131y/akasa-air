@@ -41,10 +41,12 @@ export function AuthShell({ kicker, title, intro, children, back = true, panel }
         </div>
       </header>
       <main id="content" className="container pb-24 pt-8 sm:pt-12">
-        {back_}
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          {column}
-          {panel && <AuthPanel variant={panel} />}
+        <div className="mx-auto max-w-[62rem]">
+          {back_}
+          <div className={panel ? 'grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14' : ''}>
+            {column}
+            {panel && <AuthPanel variant={panel} />}
+          </div>
         </div>
       </main>
     </div>

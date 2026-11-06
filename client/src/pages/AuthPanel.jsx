@@ -9,22 +9,22 @@ function MiniRequest() {
   const b = leaveBreakdown(SAMPLE.from, SAMPLE.to, SAMPLE.holidays);
   const note = excludedSummary(b);
   return (
-    <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-lift">
+    <div className="rounded-lg border bg-card p-3 text-card-foreground">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar name="Kavya Reddy" className="size-10 shrink-0" />
+          <Avatar name="Kavya Reddy" className="size-8 shrink-0" />
           <div className="min-w-0">
-            <p className="truncate font-semibold">Kavya Reddy</p>
-            <p className="font-mono text-xs text-muted-foreground">24 Dec to 28 Dec</p>
+            <p className="truncate text-sm font-semibold">Kavya Reddy</p>
+            <p className="font-mono text-[0.7rem] text-muted-foreground">24 to 28 Dec</p>
           </div>
         </div>
-        <StatusChip status="PENDING_MANAGER" className="shrink-0" />
+        <StatusChip status="PENDING_MANAGER" className="shrink-0 px-2 py-0.5 text-[0.7rem]" />
       </div>
-      <p className="mt-3 text-sm">
+      <p className="mt-2 text-xs">
         <span className="font-semibold">{b.days} days</span>
         <span className="text-muted-foreground"> · {note}</span>
       </p>
-      <p className="mt-1 text-sm text-muted-foreground">A cousin's wedding in Jaipur.</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">A cousin's wedding in Jaipur.</p>
     </div>
   );
 }
@@ -66,32 +66,32 @@ const LINK_COPY = {
 export function AuthPanel({ variant }) {
   if (variant === 'signup') {
     return (
-      <div className="dark hidden lg:block">
-        <div className="gridlines relative flex h-full flex-col justify-between gap-10 overflow-hidden rounded-xl border bg-background p-10 text-foreground">
+      <div className="dark hidden self-start lg:sticky lg:top-24 lg:block">
+        <div className="gridlines relative flex flex-col gap-6 overflow-hidden rounded-xl border bg-background p-6 text-foreground">
           <div>
             <p className="kicker">What happens next</p>
-            <ol className="mt-6 space-y-6">
+            <ol className="mt-4 space-y-4">
               {SIGNUP_STEPS.map(([title, text], i) => (
-                <li key={title} className="flex gap-4">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-flame font-mono text-sm font-semibold text-flame-foreground">
+                <li key={title} className="flex gap-3">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-flame font-mono text-xs font-semibold text-flame-foreground">
                     {i + 1}
                   </span>
                   <div>
-                    <p className="font-display text-xl leading-tight">{title}</p>
-                    <p className="mt-1 text-muted-foreground">{text}</p>
+                    <p className="text-base font-bold leading-tight">{title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{text}</p>
                   </div>
                 </li>
               ))}
             </ol>
           </div>
           <div>
-            <p className="kicker mb-3 flex items-center gap-2">
+            <p className="kicker mb-2 flex items-center gap-2">
               <CalendarDays className="size-4" aria-hidden="true" /> A request, once you are set up
             </p>
             <div aria-hidden="true">
               <MiniRequest />
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">Sample person and dates. Sundays and public holidays are never counted.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Sample person and dates. Sundays and public holidays are never counted.</p>
           </div>
         </div>
       </div>
@@ -101,13 +101,13 @@ export function AuthPanel({ variant }) {
   if (!c) return null;
   const Icon = c.icon;
   return (
-    <div className="dark hidden lg:block">
-      <div className="gridlines relative flex h-full flex-col justify-center gap-6 overflow-hidden rounded-xl border bg-background p-10 text-foreground">
+    <div className="dark hidden self-start lg:sticky lg:top-24 lg:block">
+      <div className="gridlines relative flex flex-col gap-4 overflow-hidden rounded-xl border bg-background p-6 text-foreground">
         <p className="kicker">{c.label}</p>
-        <Icon className="size-9 text-brand" aria-hidden="true" />
-        <h2 className="font-display text-2xl leading-tight">{c.title}</h2>
-        <p className="text-muted-foreground">{c.body}</p>
-        <p className="border-t pt-5 text-sm text-muted-foreground">{c.note}</p>
+        <Icon className="size-7 text-brand" aria-hidden="true" />
+        <h2 className="text-lg font-bold leading-tight">{c.title}</h2>
+        <p className="text-sm text-muted-foreground">{c.body}</p>
+        <p className="border-t pt-4 text-xs text-muted-foreground">{c.note}</p>
       </div>
     </div>
   );

@@ -11,6 +11,17 @@ const ICONS = {
   CANCELLED: '–',
 };
 
+export function BrandMark() {
+  return (
+    <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect width="32" height="32" rx="8" fill="currentColor" opacity=".12" />
+      <rect x="6" y="8" width="20" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M6 14h20M11 5v6M21 5v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="m12 20 3 3 5-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Status chip: colour + icon + text, never colour alone. */
 export function StatusChip({ status }) {
   return (

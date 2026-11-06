@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../auth.jsx';
-import { ErrorBox, FieldError } from '../components.jsx';
+import { BrandMark, ErrorBox, FieldError } from '../components.jsx';
 
 const PASSWORD = 'Password@123';
 const DEMO_GROUPS = [
@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   return (
     <main className="login">
-      <h1>Leave Desk</h1>
+      <h1><BrandMark /> Leave Desk</h1>
       <p className="muted">Sign in to apply for leave or review requests.</p>
       <ErrorBox error={error} />
       <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} noValidate>

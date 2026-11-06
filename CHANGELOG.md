@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Design polish: design tokens, automatic dark theme, sticky header with brand mark and avatar, skip link, refined cards and forms; added DESIGN.md.
 - Security hardening: httpOnly cookie sessions with rotating refresh tokens, account lockout, rate limits, Helmet/CSP, CORS allowlist, operator-injection guard, request IDs and structured logs.
 - Frontend component tests; security test suite; documentation set.
 

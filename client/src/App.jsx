@@ -1,5 +1,6 @@
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth.jsx';
+import { BrandMark } from './components.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import ApplyPage from './pages/ApplyPage.jsx';
 import ListPage from './pages/ListPage.jsx';
@@ -24,8 +25,9 @@ function Shell({ children }) {
   const isApprover = user.role !== 'EMPLOYEE';
   return (
     <>
+      <a className="skip" href="#content">Skip to content</a>
       <header className="topbar">
-        <strong className="brand">Leave Desk</strong>
+        <strong className="brand"><BrandMark /> Leave Desk</strong>
         <nav aria-label="Main">
           <NavLink to="/apply">Apply</NavLink>
           <NavLink to="/mine">My requests</NavLink>
@@ -34,12 +36,13 @@ function Shell({ children }) {
           {isApprover && <NavLink to="/team">{user.role === 'HOD' ? 'All requests' : 'Team requests'}</NavLink>}
         </nav>
         <span className="who">
-          {user.name} <span className="role">{user.role}</span>
+          <span className="avatar" aria-hidden="true">{user.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</span>
+          <span>{user.name}</span> <span className="role">{user.role}</span>
           <button className="link" onClick={logout}>Sign out</button>
         </span>
       </header>
       <OfflineBanner />
-      <main>{children}</main>
+      <main id="content" tabIndex={-1}>{children}</main>
     </>
   );
 }

@@ -35,8 +35,19 @@ export default function LoginPage() {
     <main className="login">
       <h1>Leave Desk</h1>
       <p className="muted">Sign in to apply for leave or review requests.</p>
+      <ErrorBox error={error} />
+      <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} noValidate>
+        <h2>Sign in with your account</h2>
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <FieldError msg={error?.fields?.email} />
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <FieldError msg={error?.fields?.password} />
+        <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+      </form>
       <section className="demo" aria-labelledby="demo-title">
-        <h2 id="demo-title">Try a demo account</h2>
+        <h2 id="demo-title">Or sign in with a demo account</h2>
         <p className="muted">One click, no password needed.</p>
         {DEMO_GROUPS.map(([group, people]) => (
           <div key={group}>
@@ -51,17 +62,6 @@ export default function LoginPage() {
           </div>
         ))}
       </section>
-      <ErrorBox error={error} />
-      <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} noValidate>
-        <h2>Or sign in with your own account</h2>
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <FieldError msg={error?.fields?.email} />
-        <label htmlFor="password">Password</label>
-        <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <FieldError msg={error?.fields?.password} />
-        <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-      </form>
     </main>
   );
 }

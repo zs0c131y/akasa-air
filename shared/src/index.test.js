@@ -11,6 +11,7 @@ import {
   excludedSummary,
   documentsAccepted,
   makeLeaveInputSchema,
+  consecutiveChain,
 } from './index.js';
 
 const plus = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
@@ -105,5 +106,39 @@ describe('public holidays are not counted', () => {
   it('documents are only for leave over 3 days', () => {
     expect(documentsAccepted(3)).toBe(false);
     expect(documentsAccepted(4)).toBe(true);
+  });
+});
+
+describe('leave in a row', () => {
+  // Mon 2 Nov 2026 .. Fri 6 Nov; Sunday 8 Nov; Mon 9 Nov..
+  const early = { fromDate: '2026-11-02', toDate: '2026-11-03', days: 2 };
+  it('two short requests that touch add up', () => {
+    const c = consecutiveChain('2026-11-04', '2026-11-05', [early]);
+    expect(c.chainDays).toBe(4);
+    expect(c.members).toHaveLength(1);
+  });
+  it('a Sunday between two requests does not break the stretch', () => {
+    const sat = { fromDate: '2026-11-07', toDate: '2026-11-07', days: 1 };
+    expect(consecutiveChain('2026-11-09', '2026-11-10', [sat]).chainDays).toBe(3); // Sat, (Sun), Mon, Tue
+  });
+  it('a holiday between two requests does not break it either', () => {
+    const tue = { fromDate: '2026-11-03', toDate: '2026-11-03', days: 1 };
+    const hol = [{ date: '2026-11-04', name: 'Local Day' }];
+    expect(consecutiveChain('2026-11-05', '2026-11-05', [tue], hol).chainDays).toBe(2);
+  });
+  it('a working day in between does break it', () => {
+    expect(consecutiveChain('2026-11-05', '2026-11-06', [early]).chainDays).toBe(2); // Wed 4 Nov is a gap
+    expect(consecutiveChain('2026-11-05', '2026-11-06', [early]).members).toHaveLength(0);
+  });
+  it('follows a chain of several requests in both directions', () => {
+    const a = { fromDate: '2026-11-02', toDate: '2026-11-02', days: 1 };
+    const c = { fromDate: '2026-11-04', toDate: '2026-11-04', days: 1 };
+    const out = consecutiveChain('2026-11-03', '2026-11-03', [c, a]);
+    expect(out.chainDays).toBe(3);
+    expect(out.from).toBe('2026-11-02');
+    expect(out.to).toBe('2026-11-04');
+  });
+  it('is just the request itself when there is nothing else', () => {
+    expect(consecutiveChain('2026-11-02', '2026-11-04', []).chainDays).toBe(3);
   });
 });

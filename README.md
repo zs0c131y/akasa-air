@@ -2,16 +2,22 @@
 
 A small MERN portal where employees request leave and managers/HODs approve, reject or ask for more information. Leave longer than 3 consecutive days needs documents and two approvals (Manager, then HOD), unless it is filed as emergency leave.
 
-**Prerequisite:** Node.js 20.11+ (tested on Node 24). Docker is optional.
+**Prerequisite:** Node.js 20.12 or newer (tested on Node 24). Docker is optional.
 
 ## Run it
 
 ### Option 1 — no Docker (zero external dependencies)
-macOS / Linux / Windows PowerShell:
+One command that installs, builds and starts everything:
+```
+scriptsun.cmd        (Windows)
+sh scripts/run.sh      (macOS / Linux)
+```
+Or step by step:
 ```
 npm run setup
 npm start
 ```
+On Windows PowerShell, if it says running scripts is disabled, use `npm.cmd run setup` and `npm.cmd start` (or run them in Command Prompt).
 Open http://localhost:4000. To use your own MongoDB (e.g. Atlas) put `MONGODB_URI=...` in a `.env` file in the repo root (git-ignored; see `.env.example`; allow your IP in Atlas Network Access). If it is not set, an embedded MongoDB starts automatically (data kept in `./data`; the first run downloads the MongoDB binary, so it needs internet once). Demo data is seeded on first start.
 
 ### Option 2 — Docker

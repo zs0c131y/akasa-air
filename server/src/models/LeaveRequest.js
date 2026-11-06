@@ -33,6 +33,8 @@ const leaveSchema = new mongoose.Schema(
     fromDate: { type: String, required: true },
     toDate: { type: String, required: true },
     days: { type: Number, required: true },
+    /** Counted days of the whole stretch this request is part of (other active requests that touch it). Decides isLong. */
+    chainDays: { type: Number, default: null },
     /** What was left out of the count (Sundays and public holidays), recorded when the request was made. */
     excludedSundays: { type: Number, default: 0 },
     excludedHolidays: { type: [new mongoose.Schema({ date: String, name: String }, { _id: false })], default: [] },

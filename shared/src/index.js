@@ -73,6 +73,40 @@ export function leaveBreakdown(from, to, holidays = []) {
 /** Leave days from `from` to `to`, both included, not counting Sundays or public holidays. */
 export const countLeaveDays = (from, to, holidays = []) => leaveBreakdown(from, to, holidays).days;
 
+/**
+ * Leave in a row. Two requests that touch (or are separated only by Sundays and public holidays) are one stretch of
+ * time off, so splitting a long leave into short ones does not avoid the document and the second approval.
+ * `others` are the person's other active requests ({ id?, fromDate, toDate, days }). Returns the total counted days
+ * of the whole stretch that includes [from, to], and which other requests are part of it.
+ */
+export function consecutiveChain(from, to, others = [], holidays = []) {
+  const own = countLeaveDays(from, to, holidays);
+  let start = from;
+  let end = to;
+  const members = [];
+  const pool = others.filter((o) => parseISODate(o.fromDate) !== null && parseISODate(o.toDate) !== null);
+  let grew = true;
+  const dayBefore = (iso) => new Date(parseISODate(iso) - DAY_MS).toISOString().slice(0, 10);
+  const dayAfter = (iso) => new Date(parseISODate(iso) + DAY_MS).toISOString().slice(0, 10);
+  while (grew) {
+    grew = false;
+    for (const o of pool) {
+      if (members.includes(o)) continue;
+      const overlaps = o.fromDate <= end && o.toDate >= start;
+      // Nothing but days off between the two: the gap [o.toDate+1, start-1] or [end+1, o.fromDate-1] counts as zero leave days.
+      const touchesBefore = o.toDate < start && countLeaveDays(dayAfter(o.toDate), dayBefore(start), holidays) === 0;
+      const touchesAfter = o.fromDate > end && countLeaveDays(dayAfter(end), dayBefore(o.fromDate), holidays) === 0;
+      if (overlaps || touchesBefore || touchesAfter) {
+        members.push(o);
+        if (o.fromDate < start) start = o.fromDate;
+        if (o.toDate > end) end = o.toDate;
+        grew = true;
+      }
+    }
+  }
+  return { chainDays: own + members.reduce((n, o) => n + (o.days ?? countLeaveDays(o.fromDate, o.toDate, holidays)), 0), members, from: start, to: end };
+}
+
 /** Human sentence for what was left out, e.g. "1 Sunday and Diwali are not counted". Empty if nothing was excluded. */
 export function excludedSummary({ sundays = 0, holidays = [] }) {
   const parts = [];

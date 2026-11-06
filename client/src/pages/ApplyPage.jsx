@@ -38,7 +38,19 @@ export default function ApplyPage() {
 
   const count = useMemo(() => leaveBreakdown(form.fromDate, form.toDate, holidays), [form.fromDate, form.toDate, holidays]);
   const days = count.days;
-  const long = isLongLeave(days);
+  // Other leave that touches these dates counts as one stretch (asked of the server, which knows the person's other requests).
+  const [chain, setChain] = useState(null);
+  useEffect(() => {
+    setChain(null);
+    if (!(days > 0)) return undefined;
+    const t = setTimeout(() => {
+      api.chain(form.fromDate, form.toDate, id).then(setChain).catch(() => setChain(null));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [form.fromDate, form.toDate, days, id]);
+  const stretch = chain && chain.chainDays > days ? chain : null;
+  const effectiveDays = Math.max(days, chain?.chainDays ?? 0);
+  const long = isLongLeave(effectiveDays);
   const schema = useMemo(() => makeLeaveInputSchema(holidays), [holidays]);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const blockMsg = obligations && !editing ? (form.isEmergency ? !obligations.canApplyEmergency : !obligations.canApplyNormal) && obligations.message : null;
@@ -54,7 +66,7 @@ export default function ApplyPage() {
     const parsed = schema.safeParse({ ...form, employeeName: user.name });
     if (!parsed.success) Object.assign(out, zodFields(parsed.error));
     else {
-      const docMsg = documentRequirementError(days, docCount, form.isEmergency);
+      const docMsg = documentRequirementError(effectiveDays, docCount, form.isEmergency);
       if (docMsg) out.documents = docMsg;
     }
     if (long) {
@@ -121,6 +133,11 @@ export default function ApplyPage() {
           {blockMsg && <ErrorBox error={{ message: blockMsg }} />}
           {obligations?.owed?.length > 0 && (
             <Notice>You still owe documents for emergency leave: {obligations.owed.map((o) => `${o.fromDate} to ${o.toDate} (due ${o.dueBy})`).join('; ')}. Open that request to upload them.</Notice>
+          )}
+          {stretch && (
+            <Notice>
+              This joins up with your other leave ({stretch.members.map((m) => `${fmtDate(m.fromDate)} to ${fmtDate(m.toDate)}`).join(', ')}), so together it is {stretch.chainDays} days in a row. Leave of more than 3 days in a row needs a document and the HOD's approval.
+            </Notice>
           )}
           <ErrorBox error={error} />
           <div className="grid gap-5 sm:grid-cols-2">

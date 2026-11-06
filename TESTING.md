@@ -8,6 +8,7 @@ Run everything: `npm test` (the server tests start a throwaway in-memory MongoDB
 | `server/test/workflow.test.js` | The state machine: every happy path, every illegal transition (409), who may act (403), self-approval, manager and HOD stage rules |
 | `server/test/api.test.js` | Short-leave flow, long-leave two-level flow, reject at each level, info-request loop, missing document blocked, overlap, bad file type, edit/cancel, stale version, RBAC/IDOR (other team, other employee, documents), manager/HOD own leave, emergency leave sequence, audit log (recorded, HOD-only, append-only), holiday calendar (HOD-only changes, holiday not counted and reported, holiday-only request refused), no documents on short leave, location calendars (local holiday only counted for that location, HOD-only locations and people, location in use cannot be removed), bulk import (preview, all-or-nothing, duplicates, day-first dates) |
 | `server/test/security.test.js` | Cookie sessions, CSRF header, refresh rotation and replay revocation, logout, account lockout, operator injection, security headers, CORS allowlist, rate limiting |
+| `shared/src/index.test.js` (leave in a row) | Touching requests, Sunday and holiday gaps, working-day gaps, chains in both directions |
 | `server/test/holidayImport.test.js` | Date formats (ISO, day-first numeric, month names), CSV/TSV/semicolon parsing, quotes, BOM, headers in any order |
 | `client/src/components.test.jsx` | Status chips and legend (text, not colour alone), badges, friendly error screens, one-click sign-in |
 

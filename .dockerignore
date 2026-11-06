@@ -2,3 +2,11 @@ node_modules
 client/dist
 data
 .git
+.env
+.env.*
+!.env.example
+*.log
+dev.log
+server.log
+server.err.log
+REQUIREMENTS_AUDIT.md

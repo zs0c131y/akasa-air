@@ -28,6 +28,11 @@ function parse(schema, body) {
   return r.data;
 }
 
+leavesRouter.get('/chain', async (req, res) => {
+  const { from, to, excludeId } = req.query;
+  res.json(await svc.previewChain(req.user, { from: String(from ?? ''), to: String(to ?? ''), excludeId: typeof excludeId === 'string' ? excludeId : null }));
+});
+
 leavesRouter.get('/calendar', async (req, res) => {
   res.json(await svc.calendar(req.user, { from: String(req.query.from ?? ''), to: String(req.query.to ?? '') }));
 });

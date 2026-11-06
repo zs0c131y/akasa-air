@@ -484,3 +484,50 @@ describe('dashboard stats', () => {
     expect(rahul.body.queue.waiting).toBe(rq.body.total);
   });
 });
+
+describe('leave in a row', () => {
+  const firstFrom = day(260);
+  const firstTo = day(262);
+  const secondFrom = nextWorkingDay(firstTo);
+  const secondTo = day(267);
+  let first;
+
+  it('a short request on its own stays short', async () => {
+    first = await submit('arjun', { fromDate: firstFrom, toDate: firstTo, reason: 'First part' });
+    expect(first.status).toBe(201);
+    expect(first.body.isLong).toBe(false);
+    expect(first.body.chainDays).toBe(first.body.days);
+  });
+
+  it('the form can ask how many days the stretch really is', async () => {
+    const r = await request(app).get(`/api/leaves/chain?from=${secondFrom}&to=${secondTo}`).set(as('arjun'));
+    expect(r.status).toBe(200);
+    expect(r.body.members).toEqual([expect.objectContaining({ fromDate: firstFrom, toDate: firstTo })]);
+    expect(r.body.chainDays).toBe(first.body.days + r.body.days);
+    expect(r.body.chainDays).toBeGreaterThan(3);
+    expect((await request(app).get('/api/leaves/chain?from=nope&to=nope').set(as('arjun'))).status).toBe(400);
+  });
+
+  it('splitting a long leave into short ones still needs the document', async () => {
+    const noDoc = await submit('arjun', { fromDate: secondFrom, toDate: secondTo, reason: 'Second part' });
+    // second part on its own is at most 3 days only if few days remain; assert on the combined rule
+    const preview = await request(app).get(`/api/leaves/chain?from=${secondFrom}&to=${secondTo}`).set(as('arjun'));
+    if (preview.body.chainDays > 3) {
+      expect(noDoc.status).toBe(400);
+      expect(noDoc.body.error.fields.documents).toMatch(/in a row/);
+    }
+    const withDoc = await submit('arjun', { fromDate: secondFrom, toDate: secondTo, reason: 'Second part' }, [{}]);
+    expect(withDoc.status).toBe(201);
+    expect(withDoc.body.isLong).toBe(true);
+    expect(withDoc.body.chainDays).toBe(preview.body.chainDays);
+    // and it now follows the two-level route
+    const queue = await request(app).post(`/api/leaves/${withDoc.body.id}/approve`).set(as('rahul')).send({ comment: 'ok' });
+    expect(queue.body.status).toBe('PENDING_HOD');
+  });
+
+  it('leave that is far apart does not join up', async () => {
+    const far = await request(app).get(`/api/leaves/chain?from=${day(280)}&to=${day(281)}`).set(as('arjun'));
+    expect(far.body.members).toEqual([]);
+    expect(far.body.chainDays).toBe(far.body.days);
+  });
+});

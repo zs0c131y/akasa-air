@@ -19,6 +19,7 @@ Codes: `VALIDATION_FAILED` 400, `BAD_INPUT` 400, `UPLOAD_FAILED` 400, `UNAUTHENT
 | `POST /leaves` | any | Apply. Fields: `employeeName?`, `fromDate`, `toDate`, `reason`, `isEmergency?`, files `documents` |
 | `GET /leaves?scope=mine\|queue\|all&status=&page=&pageSize=` | `queue`/`all`: manager, HOD | List with pagination |
 | `GET /stats` | signed in | Numbers for the home screen. Everyone: `mine` (open requests, approved days this year, next time off). Managers and HOD also `queue` (waiting, longest wait), `team` (away today, away this week) and `decisions` (median hours to decide, last 90 days) |
+| `GET /leaves/chain?from=&to=&excludeId?` | signed in | What these dates cost and whether they join up with your other active leave (touching, or separated only by Sundays and holidays). Returns `{days, chainDays, members}`; the apply form uses it |
 | `GET /leaves/calendar?from=&to=` | signed in | Who is away in a date range (at most about two months) plus the holidays that apply to you. HOD: everyone. Manager: their team. Employee: own requests and teammates' approved leave, names and dates only |
 | `GET /leaves/obligations` | any | Emergency leaves still owing documents; what you may apply for |
 | `GET /leaves/:id` | owner, their manager, HOD | Detail with timeline and `allowedActions` |

@@ -5,6 +5,7 @@ import {
   ALLOWED_MIME,
   STATUSES,
   leaveBreakdown,
+  consecutiveChain,
   makeLeaveInputSchema,
   documentsAccepted,
   isLongLeave,
@@ -68,6 +69,7 @@ export function serialize(doc, user) {
     fromDate: doc.fromDate,
     toDate: doc.toDate,
     days: doc.days,
+    chainDays: doc.chainDays ?? doc.days,
     excluded: { sundays: doc.excludedSundays ?? 0, holidays: (doc.excludedHolidays ?? []).map((h) => ({ date: h.date, name: h.name })) },
     isLong: doc.isLong,
     reason: doc.reason,
@@ -161,6 +163,30 @@ function assertDocumentsAllowed(days, count) {
   if (count > 0 && !documentsAccepted(days)) throw validationError({ documents: NO_DOCS_MSG }, NO_DOCS_MSG);
 }
 
+const plusDays = (iso, n) => new Date(parseISODate(iso) + n * 86400000).toISOString().slice(0, 10);
+
+/**
+ * Leave in a row: the person's other active requests that touch this one (or are separated only by Sundays and holidays)
+ * count together, so splitting a long leave into short requests does not skip the document or the second approval.
+ */
+export async function chainFor(user, fromDate, toDate, excludeId = null) {
+  const lo = plusDays(fromDate, -31);
+  const hi = plusDays(toDate, 31);
+  const [others, hols] = await Promise.all([
+    LeaveRequest.find(
+      { employeeId: user.id, status: { $in: ACTIVE }, fromDate: { $lte: hi }, toDate: { $gte: lo }, ...(excludeId ? { _id: { $ne: excludeId } } : {}) },
+      { fromDate: 1, toDate: 1, days: 1 },
+    ).lean(),
+    holidaysFor(user, { from: lo, to: hi }),
+  ]);
+  return consecutiveChain(fromDate, toDate, others, hols);
+}
+
+const chainNote = (chain) =>
+  chain.members.length
+    ? ` Together with your other leave (${chain.members.map((m) => `${m.fromDate} to ${m.toDate}`).join(', ')}) this is ${chain.chainDays} days in a row.`
+    : '';
+
 /** Emergency leaves that still owe documents. */
 async function owedEmergencyLeaves(employeeId, excludeId) {
   const rows = await LeaveRequest.find({
@@ -216,9 +242,10 @@ async function assertNoOverlap(employeeId, fromDate, toDate, excludeId) {
 export async function createLeave(user, body, files) {
   const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files);
-  assertDocumentsAllowed(input.days, prepared.length);
-  const docMsg = documentRequirementError(input.days, prepared.length, input.isEmergency);
-  if (docMsg) throw validationError({ documents: docMsg }, docMsg);
+  const chain = await chainFor(user, input.fromDate, input.toDate);
+  assertDocumentsAllowed(chain.chainDays, prepared.length);
+  const docMsg = documentRequirementError(chain.chainDays, prepared.length, input.isEmergency);
+  if (docMsg) throw validationError({ documents: docMsg + chainNote(chain) }, docMsg + chainNote(chain));
   await assertNoOverlap(user.id, input.fromDate, input.toDate);
   await assertMayApply(user.id, input.isEmergency);
 
@@ -236,7 +263,8 @@ export async function createLeave(user, body, files) {
     days: input.days,
     excludedSundays: input.excludedSundays,
     excludedHolidays: input.excludedHolidays,
-    isLong: isLongLeave(input.days),
+    chainDays: chain.chainDays,
+    isLong: isLongLeave(chain.chainDays),
     reason: input.reason,
     isEmergency: input.isEmergency,
     status,
@@ -321,10 +349,11 @@ export async function updateLeave(id, user, body, files) {
   const doc = await load(id, user);
   const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files, doc.documents.length);
-  assertDocumentsAllowed(input.days, prepared.length);
-  const isLong = isLongLeave(input.days);
-  const docMsg = documentRequirementError(input.days, doc.documents.length + prepared.length, input.isEmergency);
-  if (docMsg) throw validationError({ documents: docMsg }, docMsg);
+  const chain = await chainFor(user, input.fromDate, input.toDate, doc._id);
+  assertDocumentsAllowed(chain.chainDays, prepared.length);
+  const isLong = isLongLeave(chain.chainDays);
+  const docMsg = documentRequirementError(chain.chainDays, doc.documents.length + prepared.length, input.isEmergency);
+  if (docMsg) throw validationError({ documents: docMsg + chainNote(chain) }, docMsg + chainNote(chain));
   applyAction(toSubject(doc), 'EDIT', actorOf(user), todayISO());
   await assertNoOverlap(user.id, input.fromDate, input.toDate, doc._id);
   await assertMayApply(user.id, input.isEmergency, doc._id);
@@ -334,6 +363,7 @@ export async function updateLeave(id, user, body, files) {
   doc.days = input.days;
   doc.excludedSundays = input.excludedSundays;
   doc.excludedHolidays = input.excludedHolidays;
+  doc.chainDays = chain.chainDays;
   doc.isLong = isLong;
   doc.reason = input.reason;
   doc.isEmergency = input.isEmergency;
@@ -354,6 +384,17 @@ export async function attachDocuments(id, user, files) {
   doc.timeline.push(entry(user, 'ATTACH', doc.status, doc.status, `Sent ${prepared.length} supporting document${prepared.length > 1 ? 's' : ''}.`));
   await save(doc);
   return serialize(doc, user);
+}
+
+/** For the apply form: what these dates cost, and whether they join up with other leave to make a long stretch. */
+export async function previewChain(user, { from, to, excludeId }) {
+  if (parseISODate(from) === null || parseISODate(to) === null || from > to) {
+    throw validationError({ from: 'Please give a start and an end date, start first (YYYY-MM-DD).' });
+  }
+  const holidays = await holidaysFor(user, { from, to });
+  const own = leaveBreakdown(from, to, holidays).days;
+  const chain = await chainFor(user, from, to, mongoose.isValidObjectId(excludeId) ? excludeId : null);
+  return { days: own, chainDays: chain.chainDays, members: chain.members.map((m) => ({ fromDate: m.fromDate, toDate: m.toDate, days: m.days })) };
 }
 
 /**

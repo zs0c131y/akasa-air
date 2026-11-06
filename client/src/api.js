@@ -51,6 +51,7 @@ export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', json: { email, password } }),
   me: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  chain: (from, to, excludeId) => request(`/leaves/chain?${new URLSearchParams({ from, to, ...(excludeId ? { excludeId } : {}) })}`),
   stats: () => request('/stats'),
   calendar: (from, to) => request(`/leaves/calendar?${new URLSearchParams({ from, to })}`),
   holidays: (params = {}) => request(`/holidays${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ''}`),

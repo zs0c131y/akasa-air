@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Leave in a row: requests that touch each other (or are separated only by Sundays and holidays) are judged together, so splitting long leave into short requests no longer skips the document or the HOD (`GET /api/leaves/chain`, shown on the apply form).
+- Packaging: `.env` is kept out of Docker images; one-command launchers `scripts/run.cmd` and `scripts/run.sh`; README Node version and PowerShell note corrected.
 - Home overview with numbers (`GET /api/stats`): your open requests and next time off; for managers and the HOD also what is waiting, the longest wait, who is away and how fast decisions are made.
 - Team calendar: month view of who is away, with Sundays and holidays marked (`/calendar`, `GET /api/leaves/calendar`). Employees see teammates' approved leave without reasons.
 - Location calendars: people work from a location, holidays can be national or local, and each request is counted with the holidays of its employee's location.

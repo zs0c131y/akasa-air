@@ -8,6 +8,14 @@ let memoryServer = null;
 /** Connects to MONGODB_URI, or starts an embedded MongoDB with persisted data when unset. */
 export async function connectDb() {
   let uri = config.mongoUri;
+  if (!uri && (config.isProd || fs.existsSync('/etc/alpine-release'))) {
+    // Hosted/containerised runs must use a real database: the embedded one has no build for Alpine
+    // and would lose data on redeploy anyway.
+    console.error(
+      '\n[db] MONGODB_URI is not set. Add it to the environment variables of your host (for example a MongoDB Atlas connection string) and redeploy.\n',
+    );
+    process.exit(1);
+  }
   if (!uri) {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     const dbPath = path.join(config.dataDir, 'mongo');

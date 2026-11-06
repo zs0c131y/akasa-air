@@ -18,7 +18,7 @@ export const config = {
     return process.env.JWT_SECRET ?? 'dev-only-secret-change-me';
   },
   get isProd() {
-    return process.env.NODE_ENV === 'production';
+    return process.env.NODE_ENV === 'production' || Boolean(process.env.RAILWAY_ENVIRONMENT);
   },
   /** Short-lived access token; the refresh token (below) renews it. */
   get accessTtl() {
@@ -33,7 +33,7 @@ export const config = {
   },
   /** Number of reverse proxies in front of the app (1 on Railway/Heroku) so req.ip is correct. */
   get trustProxy() {
-    return Number(process.env.TRUST_PROXY ?? 0);
+    return Number(process.env.TRUST_PROXY ?? (process.env.RAILWAY_ENVIRONMENT ? 1 : 0));
   },
   get maxFailedLogins() {
     return Number(process.env.MAX_FAILED_LOGINS ?? 5);

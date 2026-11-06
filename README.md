@@ -58,7 +58,7 @@ Seed data has requests in every status, including long leaves waiting at the man
 `shared/` validation rules used by client and server · `server/` Express API, Mongoose models, `workflow.js` (state machine), `services/` · `client/` React (Vite) UI.
 
 ## Documentation
-[WORKFLOW](WORKFLOW.md) · [API](API.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) · [TESTING](TESTING.md) · [DEMO script](DEMO.md) · [GLOSSARY](GLOSSARY.md) · [AI_USAGE](AI_USAGE.md) · [CHANGELOG](CHANGELOG.md)
+[DEPLOYMENT](DEPLOYMENT.md) · [WORKFLOW](WORKFLOW.md) · [API](API.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) · [TESTING](TESTING.md) · [DEMO script](DEMO.md) · [GLOSSARY](GLOSSARY.md) · [AI_USAGE](AI_USAGE.md) · [CHANGELOG](CHANGELOG.md)
 
 ## Known limitations
 Demo accounts share one password and one-click demo sign-in is on the login page (remove for real use); no email notifications; no Playwright end-to-end tests or automated accessibility audit yet; no OpenAPI page (see API.md); uploaded files are stored on local disk and not virus-scanned; no password reset or MFA.

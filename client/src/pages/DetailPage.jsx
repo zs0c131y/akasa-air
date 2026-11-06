@@ -96,7 +96,7 @@ export default function DetailPage() {
                 <h1 className="font-display mt-1 text-2xl leading-tight sm:text-3xl">{leave.employeeName}</h1>
               </div>
             </div>
-            <StatusChip status={leave.status} />
+            <StatusChip status={leave.status} leave={leave} />
           </div>
 
           <dl className="grid gap-x-8 gap-y-5 border-t pt-5 sm:grid-cols-2">
@@ -119,7 +119,19 @@ export default function DetailPage() {
           </dl>
 
           <div className="flex flex-wrap items-center gap-2 empty:hidden"><Badges leave={leave} /></div>
-          {leave.isLong && <p className="text-sm text-muted-foreground">This is long leave, so it needs a yes from the manager and then from the HOD.</p>}
+          {leave.joinedWith?.length > 0 && (
+            <Notice className={isApprover ? 'ring-2 ring-status-amber-fg/40' : undefined}>
+              This request follows other leave from the same person:{' '}
+              {leave.joinedWith.map((j, i) => (
+                <span key={j.id}>
+                  {i > 0 && ', '}
+                  <Link to={`/leaves/${j.id}`} className="font-semibold underline underline-offset-2">{fmtDate(j.fromDate)} to {fmtDate(j.toDate)}</Link>
+                </span>
+              ))}
+              . Together that is {leave.absenceDays} days in a row, so it needs a document and the HOD's approval.
+            </Notice>
+          )}
+          {leave.isLong && <p className="text-sm text-muted-foreground">This is long leave (more than 3 days in a row), so it needs a yes from the manager and then from the HOD.</p>}
           {leave.documentsPending && (
             <Notice>Supporting documents are due by {fmtDate(leave.documentsDueBy)}. Send them before you return to work or ask for other leave.</Notice>
           )}

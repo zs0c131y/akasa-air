@@ -45,7 +45,11 @@ Days are counted inclusively, **except Sundays and public holidays, which are ne
 
 **Leave in a row.** Requests of the same person that touch (or are separated only by Sundays and public holidays) count together when deciding if leave is long, so splitting a 6-day leave into 3 + 3 does not skip the document or the HOD. The later request becomes the long one, and says why ("Together with your other leave ... this is 6 days in a row"). Requests already approved are not changed afterwards.
 
-**Documents** are only taken for leave over 3 counted days. Short leave neither needs nor accepts a document (the form hides the upload box and the server refuses it).. More than 3 days (`LONG_LEAVE_THRESHOLD_DAYS`) means documents are required and both Manager and HOD must approve. Exactly 3 is short.
+**The "more than 3 days" rule is about days in a row.** The assignment says "more than 3 consecutive leaves", so the rule looks at how many calendar days someone is away from the first day to the last, Sundays and holidays in the middle included. Friday to Monday is 4 days in a row even though only 3 are charged. Above 3 days in a row (`LONG_LEAVE_THRESHOLD_DAYS`), documents are required and both Manager and HOD must approve. Exactly 3 is short. What is *charged* to the person (`days`) still leaves out Sundays and public holidays.
+
+**Split-up requests are caught.** If someone files Friday and Saturday, then Monday to Wednesday, the second request is judged together with the first (6 days in a row). It needs a document and the HOD's approval, is flagged to the approvers (`splitFlag`, "In a row with other leave"), and an audit entry `SPLIT_LEAVE_FLAGGED` is written.
+
+**Documents** are only taken for leave over 3 days in a row. Shorter leave neither needs nor accepts a document (the form hides the upload box and the server refuses it).
 
 ## Emergency leave
 Tick "Emergency leave" to file a long leave without documents. Both approvals are still needed. Documents are due by the day after the leave ends, or before the next leave.

@@ -2,7 +2,8 @@
 
 - **HOD** (Head of Department): the senior approver. Approves long leave after the manager and approves managers' own leave.
 - **Consecutive leave**: leave days in a row. Counted as every calendar day from start to end, both included, except Sundays and public holidays, which are never counted.
-- **Long leave**: more than 3 consecutive days. Needs documents and two approvals.
+- **Long leave**: more than 3 days in a row away (first to last day, Sundays and holidays between included). Needs documents and two approvals.
+- **Split request**: a long leave filed in short pieces. Layover adds touching requests together and flags the later one.
 - **Emergency leave**: long leave that may be filed without documents, which are then owed.
 - **State machine**: a fixed list of statuses and the only moves allowed between them.
 - **Audit log**: a permanent record of who did what and when. Entries cannot be edited or removed.

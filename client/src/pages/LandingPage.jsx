@@ -9,7 +9,7 @@ import { CONTACT_EMAIL } from '../site.js';
 import { heroIntro, useLandingMotion } from '../motion.js';
 import { cn } from '../lib/utils.js';
 import { HeroBoard } from '../landing/HeroBoard.jsx';
-import { ApplyPanel, ApprovalPanel, CalendarPanel, NetworkPanel } from '../landing/panels.jsx';
+import { ApplyPanel, ApprovalPanel, CalendarPanel, SplitPanel } from '../landing/panels.jsx';
 import { DemoPicker } from '../landing/DemoPicker.jsx';
 import { ARJUN, dayLabel } from '../landing/sample.js';
 
@@ -31,6 +31,7 @@ function Header() {
         </nav>
         <div className="ml-auto flex items-center gap-1.5">
           <Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/login">Sign in</Link></Button>
+          <Button asChild variant="outline" className="hidden md:inline-flex"><Link to="/signup">Create account</Link></Button>
           <Button asChild variant="brand" className="px-4"><a href="#demo">Try the demo</a></Button>
           <ThemeToggle />
         </div>
@@ -48,18 +49,17 @@ function Hero() {
         <div className="gridlines pointer-events-none absolute inset-0" aria-hidden="true" />
         <div className="container relative grid gap-12 pb-20 pt-14 sm:pt-20 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:items-center xl:gap-14 xl:pb-28 xl:pt-24">
           <div className="max-w-2xl">
-            <p data-hero-fade className="kicker mb-6">Leave desk for Akasa Air teams</p>
             <h1 id="hero-title" data-hero-fade className="font-display text-[2.55rem] leading-[1.02] sm:text-6xl xl:text-[4.25rem]">
               Ask for leave and see exactly where it is
             </h1>
             <p data-hero-fade className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Layover is where Akasa Air teams ask for time off. You pick the dates, your manager answers, and anything over {LIMIT} days goes to the head of department next.
+              Pick your dates and give a reason. Your manager answers first. If you are away more than {LIMIT} days in a row, the head of department signs it off after that.
             </p>
             <div data-hero-fade className="mt-9 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" variant="brand"><a href="#demo">Try the demo <ArrowRight /></a></Button>
               <Button asChild size="lg" variant="outline"><a href="#how">How it works</a></Button>
             </div>
-            <p data-hero-fade className="mt-5 text-sm text-muted-foreground">No sign-up. Pick a person and look around.</p>
+            <p data-hero-fade className="mt-5 text-sm text-muted-foreground">No sign-up needed for the demo. Pick a person and look around. Want your own account? <Link to="/signup" className="underline underline-offset-4 hover:text-foreground">Create one</Link>.</p>
           </div>
           <HeroBoard />
         </div>
@@ -80,9 +80,9 @@ function SectionHead({ id, kicker, title, children, className }) {
 
 const VALUES = [
   ['Days counted for you', 'Sundays and public holidays are left out, and the form names the ones it skipped.'],
-  ['Documents only when needed', `Up to ${LIMIT} days, there is nothing to attach. For longer leave you add something like a medical certificate or a flight booking.`],
-  ['A second yes for long leave', `Your manager answers first. Anything over ${LIMIT} days then goes to the head of department.`],
-  ['A log nobody can edit', 'Every request, decision and opened document is written down. The HOD can read it. Nobody can change it.'],
+  ['Documents only when needed', `Up to ${LIMIT} days in a row, there is nothing to attach. For longer leave you add something like a medical certificate or a flight booking.`],
+  ['A second yes for long leave', `Your manager answers first. Leave of more than ${LIMIT} days in a row then goes to the head of department.`],
+  ['A record of who did what', 'Every request, decision and opened document is logged with the person and the time. The HOD can read it.'],
 ];
 
 function Values() {
@@ -136,7 +136,7 @@ function HowItWorks() {
             panel={<ApplyPanel />}
             points={[
               'The count changes as soon as you change a date',
-              `The upload box only appears for leave over ${LIMIT} days`,
+              `The upload box only appears when you are away more than ${LIMIT} days in a row`,
               'In an emergency, send the request now and the documents before you are back',
             ]}
           >
@@ -153,32 +153,32 @@ function HowItWorks() {
               'A manager’s own leave goes straight to the HOD',
             ]}
           >
-            Rahul finds Arjun&rsquo;s request in his queue with the dates, the reason and the invitation. He can approve it, turn it down, or ask a question. Here he asked who was covering Arjun&rsquo;s shifts, got an answer and approved. Because it&rsquo;s {ARJUN.days} days, it now waits for Priya, the head of department.
+            Rahul finds Arjun&rsquo;s request in his queue with the dates, the reason and the invitation. He can approve it, turn it down, or ask a question. Here he asked who was covering Arjun&rsquo;s shifts, got an answer and approved. Because he is away for {ARJUN.calendarDays} days in a row, it now waits for the head of department.
           </Feature>
           <Feature
             kicker="Holidays and records"
-            title="The HOD keeps the holiday list"
+            title="The holiday list belongs to the HOD"
             panel={<CalendarPanel />}
             points={[
-              'Everyone can see the calendar. Only the HOD can change it',
-              'Adding or removing a holiday is written to the audit log',
-              'Only the HOD can open the log, and its entries can’t be edited',
+              'A holiday can apply to everyone or to one location',
+              'Paste or upload a list instead of typing each date',
+              'Adding or removing a holiday is written to the audit log, which the HOD can read',
             ]}
           >
-            Republic Day, Independence Day, Gandhi Jayanti and Christmas are in the calendar from the start, because their dates don&rsquo;t move. Diwali and Eid change every year, so Priya adds them once the dates are announced. New requests leave them out from then on.
+            Republic Day, Independence Day, Gandhi Jayanti and Christmas are in the calendar from the start, because their dates don&rsquo;t move. Diwali and Eid change every year, so the HOD adds them once the dates are announced. New requests leave them out from then on.
           </Feature>
           <Feature
             flip
-            kicker="Across locations"
-            title="One leave desk for people in many places"
-            panel={<NetworkPanel />}
+            kicker="Keeping it fair"
+            title="Splitting a long leave into short ones doesn&rsquo;t work"
+            panel={<SplitPanel />}
             points={[
-              'Works in the browser, on a phone or a laptop',
-              'One holiday list, and it counts for everyone',
-              'People see their own requests. Managers see their team’s',
+              'Leave that touches other leave counts as one stretch',
+              'The later request asks for a document and the HOD, and says why',
+              'Approvers see a flag, and it goes in the audit log',
             ]}
           >
-            An airline&rsquo;s people don&rsquo;t sit in one office. Layover gives all of them the same rules and the same way to ask, whichever city they work from. A request filed from one airport reaches the right manager the same way as one filed from another.
+            Say someone takes Friday and Saturday, then asks for Monday to Wednesday. Each request is short, but together it is six days in a row. Layover adds them up, including the Sunday in between, so the second request is treated as long leave.
           </Feature>
         </div>
       </div>
@@ -187,8 +187,8 @@ function HowItWorks() {
 }
 
 const STEPS = [
-  ['You ask', `Pick the dates and write a reason, like “Cousin’s wedding in Jaipur”. Over ${LIMIT} days, attach a document.`],
-  ['Your manager answers', `Approve, turn it down with a reason, or ask you something. For ${LIMIT} days or fewer, that’s the final answer.`],
+  ['You ask', `Pick the dates and write a reason, like “Cousin’s wedding in Jaipur”. For more than ${LIMIT} days in a row, attach a document.`],
+  ['Your manager answers', `Approve, turn it down with a reason, or ask you something. For ${LIMIT} days in a row or fewer, that’s the final answer.`],
   ['The HOD signs off', 'Longer leave goes to the head of department once your manager has approved it.'],
   ['You see the outcome', 'The request shows who decided, when, and what they wrote. You can still cancel it until the leave starts.'],
 ];
@@ -215,7 +215,7 @@ function Steps() {
 const ROLES = [
   ['Employee', 'Asks', 'Arjun Sharma', ['Apply, with the days counted as you type', 'Reply to questions and send documents', 'Edit until someone approves, cancel until the leave starts']],
   ['Manager', 'Decides', 'Rahul Mehta', ['A queue of what’s waiting, oldest first', 'Approve, turn down with a reason, or ask', 'Open the documents attached to a request']],
-  ['Head of Department', 'Oversees', 'Priya Nair', [`The final say on leave over ${LIMIT} days`, 'Keeps the holiday calendar', 'Reads the audit log']],
+  ['Head of Department', 'Oversees', 'Priya Nair', [`The final say on leave of more than ${LIMIT} days in a row`, 'Keeps the holiday calendar', 'Reads the audit log, and sets up new people']],
 ];
 
 function Roles() {
@@ -293,11 +293,12 @@ function Offer() {
 }
 
 const FAQ = [
-  ['Who approves my leave?', `Your manager. If it’s more than ${LIMIT} days, the head of department approves it after your manager. A manager’s own leave goes straight to the HOD. The HOD’s own leave is approved automatically and marked as such on the request.`],
-  ['How are the days counted?', 'Every day from the start date to the end date, both included, except Sundays and public holidays. A request that only covers those days can’t be sent, because it has no leave days in it.'],
-  ['When do I need to attach a document?', `Only when the leave is more than ${LIMIT} counted days. A medical certificate, a flight booking or an invitation all work. Files can be PDF, JPG or PNG, up to 5 MB each. For shorter leave the upload box doesn’t appear at all.`],
-  ['What if it’s an emergency?', `Leave over ${LIMIT} days can be sent as an emergency without documents. You send them before you’re back at work. If two emergency leaves are still waiting on documents, you can’t ask for more leave until you upload them.`],
-  ['Who decides which days are holidays?', 'The HOD. Republic Day, Independence Day, Gandhi Jayanti and Christmas are there from the start. Holidays whose dates move each year, like Diwali and Eid, are added by the HOD.'],
+  ['Who approves my leave?', `Your manager. If you are away more than ${LIMIT} days in a row, the head of department approves it after your manager. A manager’s own leave goes straight to the HOD. The HOD’s own leave is approved automatically and marked as such on the request.`],
+  ['How are the days counted?', `You are charged for every day from the start date to the end date, except Sundays and public holidays. A request that only covers those days can’t be sent. For the “more than ${LIMIT} days in a row” rule, a Sunday or holiday in the middle still counts as being away, so Friday to Monday is four days in a row even though only three are charged.`],
+  ['When do I need to attach a document?', `Only when you are away more than ${LIMIT} days in a row. That includes leave you filed in pieces that join up. A medical certificate, a flight booking or an invitation all work. Files can be PDF, JPG or PNG, up to 5 MB each. For shorter leave the upload box doesn’t appear at all.`],
+  ['What if it’s an emergency?', `Leave of more than ${LIMIT} days in a row can be sent as an emergency without documents. You send them before you’re back at work. If two emergency leaves are still waiting on documents, you can’t ask for more leave until you upload them.`],
+  ['Who decides which days are holidays?', 'The HOD. Republic Day, Independence Day, Gandhi Jayanti and Christmas are there from the start. Holidays whose dates move each year, like Diwali and Eid, are added by the HOD. A holiday can apply to everyone or only to people at one location.'],
+  ['Can I create my own account?', 'Yes. Sign up with your email and choose a password. The head of department then picks your manager, and after that you can apply for leave. If you forget your password, the sign-in page can email you a link to choose a new one.'],
   ['Who can see my request?', 'You, your manager and the HOD. Other employees can’t. Only the HOD can open the audit log.'],
   ['Is the demo data real?', 'No. The nine people and their requests are made up so you can try every step without touching anyone’s real leave.'],
 ];
@@ -347,15 +348,21 @@ function Footer() {
       <div className="container grid gap-8 py-12 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div>
           <Brand />
-          <p className="mt-4 max-w-sm text-sm text-muted-foreground">The leave desk for Akasa Air teams. The people in the demo are made up.</p>
+          <p className="mt-4 max-w-sm text-sm text-muted-foreground">The people and requests in the demo are made up.</p>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <nav aria-label="Footer" className="flex flex-wrap gap-x-5 text-sm text-muted-foreground">
             {NAV.map(([label, href]) => <a key={href} href={href} className="inline-flex min-h-11 items-center hover:text-foreground">{label}</a>)}
             <Link to="/login" className="inline-flex min-h-11 items-center hover:text-foreground">Sign in</Link>
+            <Link to="/signup" className="inline-flex min-h-11 items-center hover:text-foreground">Create account</Link>
           </nav>
           <div className="flex items-center gap-1"><TextSizeMenu /><ThemeToggle /></div>
         </div>
+      </div>
+      <div className="border-t border-border">
+        <p className="container py-5 text-center text-[0.8rem] leading-relaxed text-muted-foreground">
+          Not affiliated with Akasa Air. Built as a placement hackathon project, from a problem statement. The name and logo belong to their owners.
+        </p>
       </div>
     </footer>
   );

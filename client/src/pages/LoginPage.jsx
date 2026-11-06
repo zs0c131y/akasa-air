@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../api.js';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '../auth.jsx';
@@ -30,16 +31,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [resent, setResent] = useState('');
 
   const signIn = async (mail, pass) => {
     setBusy(true);
     setError(null);
+    setResent('');
     try {
       await login(mail, pass);
     } catch (err) {
       setError(err);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setResent('');
+    try {
+      const r = await api.resendVerification(email.trim());
+      setResent(r.message || 'If that address is waiting to be confirmed, we have sent the link again.');
+    } catch (err) {
+      setError(err);
     }
   };
 
@@ -71,6 +84,12 @@ export default function LoginPage() {
             <p className="mt-2.5 text-muted-foreground">Apply for leave, or see what is waiting for your decision.</p>
             <div className="mt-7 rounded-lg border bg-card p-5 shadow-soft sm:p-6">
               <ErrorBox error={error} className="mb-5" />
+              {error?.code === 'EMAIL_NOT_VERIFIED' && (
+                <div className="-mt-2 mb-5">
+                  <Button type="button" variant="outline" onClick={resend}>Send it again</Button>
+                  {resent && <p role="status" className="mt-3 text-sm font-medium text-status-green-fg">{resent}</p>}
+                </div>
+              )}
               <form onSubmit={submit} noValidate className="space-y-5">
                 <div>
                   <Label htmlFor="email">Email</Label>
@@ -78,12 +97,16 @@ export default function LoginPage() {
                   <FieldError msg={error?.fields?.email} />
                 </div>
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <Label htmlFor="password" className="mb-0">Password</Label>
+                    <Link to="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-medium text-brand underline-offset-4 hover:underline">Forgot your password?</Link>
+                  </div>
                   <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(error?.fields?.password)} />
                   <FieldError msg={error?.fields?.password} />
                 </div>
                 <Button variant="brand" className="w-full" size="lg" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</Button>
               </form>
+              <p className="mt-5 text-sm text-muted-foreground">New here? <Link to="/signup" className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4">Create an account</Link></p>
             </div>
           </div>
 

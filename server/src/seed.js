@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { countLeaveDays, isLongLeave, todayISO, parseISODate } from '@lms/shared';
+import { countLeaveDays, absenceDays, isLongLeave, todayISO, parseISODate } from '@lms/shared';
 import { User } from './models/User.js';
 import { LeaveRequest } from './models/LeaveRequest.js';
 import { storage } from './storage/index.js';
@@ -63,7 +63,8 @@ export async function seedIfEmpty() {
       fromDate: offset(from),
       toDate: offset(to),
       days,
-      isLong: isLongLeave(days),
+      absenceDays: absenceDays(offset(from), offset(to)),
+      isLong: isLongLeave(absenceDays(offset(from), offset(to))),
       reason,
       isEmergency: opts.emergency ?? false,
       status,

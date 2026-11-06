@@ -88,7 +88,7 @@ export default function ListPage({ scope, title, description, kicker }) {
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-3 sm:flex-row sm:items-center">
-                <StatusChip status={l.status} />
+                <StatusChip status={l.status} leave={l} />
                 <ArrowRight className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground sm:block" aria-hidden="true" />
               </div>
             </Link>

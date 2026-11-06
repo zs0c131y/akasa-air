@@ -1,5 +1,6 @@
 import { todayISO, parseISODate } from '@lms/shared';
 import { LeaveRequest } from '../models/LeaveRequest.js';
+import { countAwaitingSetup } from './holidayService.js';
 
 const DAY = 86400000;
 const iso = (t) => new Date(t).toISOString().slice(0, 10);
@@ -56,6 +57,8 @@ export async function dashboardStats(user) {
     waiting: waiting.length,
     long: waiting.filter((w) => w.isLong).length,
     oldestWaitingDays: oldest ? Math.floor((Date.now() - new Date(oldest.updatedAt).getTime()) / DAY) : 0,
+    oldestWaitingHours: oldest ? Math.floor((Date.now() - new Date(oldest.updatedAt).getTime()) / 3600000) : 0,
+    oldestSince: oldest ? new Date(oldest.updatedAt).toISOString() : null,
     oldestName: oldest?.employeeName ?? null,
   };
   const people = (rows) => new Set(rows.map((r) => String(r.employeeId))).size;
@@ -73,5 +76,6 @@ export async function dashboardStats(user) {
   }
   const med = median(hours);
   out.decisions = { decided: hours.length, medianHours: med === null ? null : Math.round(med * 10) / 10 };
+  if (user.role === 'HOD') out.awaitingSetup = await countAwaitingSetup();
   return out;
 }

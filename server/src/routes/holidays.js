@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { forbidden } from '../errors.js';
 import { audit } from '../services/auditService.js';
 import {
-  addHoliday, addLocation, importHolidays, listHolidays, listLocations, listPeople, removeHoliday, removeLocation, setPersonLocation,
+  addHoliday, addLocation, importHolidays, listHolidays, listLocations, listPeople, removeHoliday, removeLocation, setPersonLocation, setPersonManager, setPersonRole,
 } from '../services/holidayService.js';
 
 const onlyHod = (req, what = 'change the holiday calendar') => {
@@ -71,6 +71,20 @@ peopleRouter.use(requireAuth);
 peopleRouter.get('/', async (req, res) => {
   onlyHod(req, 'see the people list');
   res.json({ items: await listPeople() });
+});
+
+peopleRouter.patch('/:id/manager', async (req, res) => {
+  onlyHod(req, 'choose someone\'s manager');
+  const p = await setPersonManager(req.params.id, req.body?.managerId);
+  await audit(req, { action: 'MANAGER_ASSIGNED', employeeName: p.name, detail: `${p.name} now reports to ${p.managerName}` });
+  res.json(p);
+});
+
+peopleRouter.patch('/:id/role', async (req, res) => {
+  onlyHod(req, 'change someone\'s role');
+  const p = await setPersonRole(req.params.id, req.body?.role);
+  await audit(req, { action: 'ROLE_CHANGED', employeeName: p.name, detail: `${p.name}: ${p.from} to ${p.role}` });
+  res.json(p);
 });
 
 peopleRouter.patch('/:id/location', async (req, res) => {

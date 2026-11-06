@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import {
-  MAX_FILES, MAX_FILE_BYTES, ALLOWED_MIME, leaveBreakdown, isLongLeave, makeLeaveInputSchema,
+  MAX_FILES, MAX_FILE_BYTES, ALLOWED_MIME, leaveBreakdown, absenceDays, isLongLeave, makeLeaveInputSchema,
   documentRequirementError, excludedSummary, zodFields, LONG_LEAVE_THRESHOLD_DAYS, todayISO,
 } from '@lms/shared';
 import { api } from '../api.js';
@@ -48,14 +48,16 @@ export default function ApplyPage() {
     }, 250);
     return () => clearTimeout(t);
   }, [form.fromDate, form.toDate, days, id]);
-  const stretch = chain && chain.chainDays > days ? chain : null;
-  const effectiveDays = Math.max(days, chain?.chainDays ?? 0);
+  const ownAway = absenceDays(form.fromDate, form.toDate);
+  const stretch = chain && chain.absenceDays > ownAway ? chain : null;
+  const effectiveDays = Math.max(ownAway, chain?.absenceDays ?? 0);
   const long = isLongLeave(effectiveDays);
   const schema = useMemo(() => makeLeaveInputSchema(holidays), [holidays]);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const blockMsg = obligations && !editing ? (form.isEmergency ? !obligations.canApplyEmergency : !obligations.canApplyNormal) && obligations.message : null;
   const needsDocs = long && !form.isEmergency;
   const docCount = existingDocs + (long ? files.length : 0);
+  const inBetween = [count.sundays ? `${count.sundays} Sunday${count.sundays === 1 ? '' : 's'}` : '', count.holidays.length ? `${count.holidays.length} holiday${count.holidays.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
   const note = excludedSummary({ sundays: count.sundays, holidays: count.holidays });
 
   // Leave that is not long needs no documents: drop anything picked earlier.
@@ -109,9 +111,9 @@ export default function ApplyPage() {
     ? 'You are the Head of Department, so your own leave is approved as soon as you file it.'
     : user.role === 'MANAGER'
       ? 'The HOD reviews it.'
-      : long ? 'Your manager reviews it first, then the HOD gives the final yes.' : 'Your manager reviews it. Leave of up to 3 days needs no one else.';
+      : long ? 'Your manager reviews it first, then the HOD gives the final yes.' : 'Your manager reviews it. Leave of up to 3 days in a row needs no one else.';
   const docsText = !long
-    ? 'Not needed. Documents are only taken for leave over 3 days.'
+    ? 'Not needed. Documents are only taken for leave of more than 3 days in a row.'
     : form.isEmergency
       ? 'Can follow. Send them before you return to work or ask for other leave.'
       : 'Needed. Attach at least one before you submit.';
@@ -136,10 +138,12 @@ export default function ApplyPage() {
           )}
           {stretch && (
             <Notice>
-              This joins up with your other leave ({stretch.members.map((m) => `${fmtDate(m.fromDate)} to ${fmtDate(m.toDate)}`).join(', ')}), so together it is {stretch.chainDays} days in a row. Leave of more than 3 days in a row needs a document and the HOD's approval.
+              This joins up with your other leave ({stretch.members.map((m) => `${fmtDate(m.fromDate)} to ${fmtDate(m.toDate)}`).join(', ')}), so together it is {stretch.absenceDays} days in a row. Leave of more than 3 days in a row needs a document and the HOD's approval.
             </Notice>
           )}
-          <ErrorBox error={error} />
+          {error?.code === 'NO_MANAGER' ? (
+            <Notice>{error.message} {error.hint}</Notice>
+          ) : <ErrorBox error={error} />}
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="fromDate">From</Label>
@@ -170,7 +174,7 @@ export default function ApplyPage() {
             <div>
               <Label htmlFor="docs">Supporting documents{needsDocs ? ' (required)' : ' (can follow)'}</Label>
               <Input id="docs" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFiles([...e.target.files])} aria-invalid={Boolean(fields.documents)} className="h-auto py-2" />
-              <p className="mt-1.5 text-sm text-muted-foreground">PDF, JPG or PNG, up to 5 MB each, at most {MAX_FILES} files. Leave over {LONG_LEAVE_THRESHOLD_DAYS} days needs a document, such as a medical certificate or a travel booking.</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">PDF, JPG or PNG, up to 5 MB each, at most {MAX_FILES} files. Leave of more than {LONG_LEAVE_THRESHOLD_DAYS} days in a row needs a document, such as a medical certificate or a travel booking.</p>
               {editing && existingDocs > 0 && <p className="mt-1 text-sm text-muted-foreground">{existingDocs} document{existingDocs === 1 ? ' is' : 's are'} already attached.</p>}
               <FieldError msg={fields.documents} />
             </div>
@@ -195,6 +199,11 @@ export default function ApplyPage() {
                 <span className="num font-display text-6xl leading-none">{days}</span>
                 <span className="ml-2 text-base font-medium">day{days === 1 ? '' : 's'}</span>
               </p>
+              {ownAway !== days && days > 0 && (
+                <p className="mt-2 text-sm font-medium">
+                  {days} leave day{days === 1 ? '' : 's'}, {ownAway} days away in a row ({inBetween} in between {count.sundays + count.holidays.length === 1 ? 'is' : 'are'} not charged)
+                </p>
+              )}
               <p className="mt-2 font-mono text-sm">{days > 0 || count.calendarDays > 0 ? `${fmtDate(form.fromDate)} to ${fmtDate(form.toDate)}` : ''}</p>
               <p className="mt-1.5 text-sm text-muted-foreground">{sentence}</p>
             </div>

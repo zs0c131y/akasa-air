@@ -12,6 +12,7 @@ import {
   documentsAccepted,
   makeLeaveInputSchema,
   consecutiveChain,
+  absenceDays,
 } from './index.js';
 
 const plus = (n) => new Date(parseISODate(todayISO()) + n * 86400000).toISOString().slice(0, 10);
@@ -32,8 +33,10 @@ describe('countLeaveDays (Sundays are not counted)', () => {
     expect(countLeaveDays('2026-11-05', '2026-11-01')).toBe(0);
     expect(countLeaveDays('2026-02-30', '2026-03-01')).toBe(0);
   });
-  it('a Sunday can make a 4-calendar-day request short', () => {
-    expect(isLongLeave(countLeaveDays('2026-11-06', '2026-11-09'))).toBe(false); // Fri,Sat,(Sun),Mon = 3
+  it('a Sunday inside leave still counts as being away, so Friday to Monday is long', () => {
+    expect(countLeaveDays('2026-11-06', '2026-11-09')).toBe(3); // Fri, Sat, (Sun), Mon are charged as 3
+    expect(absenceDays('2026-11-06', '2026-11-09')).toBe(4); // but four days in a row away
+    expect(isLongLeave(absenceDays('2026-11-06', '2026-11-09'))).toBe(true);
   });
 });
 
@@ -140,5 +143,24 @@ describe('leave in a row', () => {
   });
   it('is just the request itself when there is nothing else', () => {
     expect(consecutiveChain('2026-11-02', '2026-11-04', []).chainDays).toBe(3);
+  });
+});
+
+describe('days in a row (absenceDays)', () => {
+  it('counts calendar days first to last, both included', () => {
+    expect(absenceDays('2026-11-02', '2026-11-02')).toBe(1);
+    expect(absenceDays('2026-11-02', '2026-11-04')).toBe(3);
+    expect(absenceDays('2026-11-02', '2026-11-05')).toBe(4);
+  });
+  it('is 0 for reversed or invalid dates', () => {
+    expect(absenceDays('2026-11-05', '2026-11-02')).toBe(0);
+    expect(absenceDays('x', '2026-11-02')).toBe(0);
+  });
+  it('catches Friday and Saturday, then Monday to Wednesday', () => {
+    const first = { fromDate: '2026-11-06', toDate: '2026-11-07', days: 2 };
+    const c = consecutiveChain('2026-11-09', '2026-11-11', [first]);
+    expect(c.chainDays).toBe(5);
+    expect(c.absenceDays).toBe(6);
+    expect(isLongLeave(c.absenceDays)).toBe(true);
   });
 });

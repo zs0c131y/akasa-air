@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, FilePlus2, Inbox } from 'lucide-react';
+import { ArrowRight, CalendarDays, FilePlus2, Inbox, UserPlus } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
-import { Avatar, ErrorBox, PageHeader, Panel, fmtDate } from '../components.jsx';
+import { Avatar, ErrorBox, PageHeader, Panel, fmtDate, fmtDateTime } from '../components.jsx';
 import { Button } from '../ui/button.jsx';
 import { Skeleton } from '../ui/skeleton.jsx';
 import { cn } from '../lib/utils.js';
@@ -20,6 +20,7 @@ function Stat({ label, value, note, to, tone }) {
   return to ? <Link to={to} className={cn(box, 'transition-colors hover:border-foreground/30')}>{body}</Link> : <div className={box}>{body}</div>;
 }
 
+const waited = (q) => (q.oldestWaitingHours < 1 ? 'Under an hour' : q.oldestWaitingHours < 24 ? plural(q.oldestWaitingHours, 'hour') : plural(q.oldestWaitingDays, 'day'));
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const hours = (h) => (h === null ? 'No decisions yet' : h < 1 ? 'Under an hour' : h < 48 ? `${Math.round(h)} hours` : `${Math.round(h / 24)} days`);
 
@@ -39,15 +40,25 @@ export default function HomePage() {
         <Button asChild variant="brand"><Link to="/apply"><FilePlus2 />New request</Link></Button>
       </PageHeader>
       <ErrorBox error={error} className="mb-4" />
+      {user.role === 'HOD' && stats?.awaitingSetup > 0 && (
+        <Link to="/holidays?tab=places" className="mb-6 flex items-center gap-4 rounded-lg border border-status-amber-fg/30 bg-status-amber-bg p-4 text-status-amber-fg transition-colors hover:border-status-amber-fg/60 sm:p-5">
+          <UserPlus className="size-6 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{stats.awaitingSetup} {stats.awaitingSetup === 1 ? 'person has' : 'people have'} signed up and {stats.awaitingSetup === 1 ? 'is' : 'are'} waiting for a manager</span>
+            <span className="block text-sm">They cannot apply for leave until you choose one.</span>
+          </span>
+          <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+        </Link>
+      )}
       {!stats && !error && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading overview">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-lg" />)}</div>}
       {stats && (
         <div className="space-y-8">
           {approver && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Stat label="Waiting for you" value={q.waiting} to="/queue" tone={q.waiting > 0 ? 'text-brand' : undefined}
-                note={q.waiting === 0 ? 'Nothing to decide right now.' : `${q.long} of them need${q.long === 1 ? 's' : ''} a document and two approvals.`} />
-              <Stat label="Longest wait" value={q.waiting ? plural(q.oldestWaitingDays, 'day') : 'None'} to="/queue"
-                note={q.oldestName ? `${q.oldestName} has been waiting longest.` : 'The queue is clear.'} />
+                note={q.waiting === 0 ? 'Nothing to decide right now.' : q.long ? `${q.long} ${q.long === 1 ? 'is' : 'are'} more than 3 days in a row.` : 'None of them is longer than 3 days in a row.'} />
+              <Stat label="Oldest request" value={q.waiting ? waited(q) : 'None'} to="/queue"
+                note={q.oldestName ? `${q.oldestName}'s request has been with you since ${fmtDateTime(q.oldestSince)}.` : 'The queue is clear.'} />
               <Stat label="Away this week" value={stats.team.awayThisWeek} to="/calendar" note={`${stats.team.awayToday} away today.`} />
               <Stat label="Time to decide" value={hours(stats.decisions.medianHours)} note={stats.decisions.decided ? `Typical, from the last ${plural(stats.decisions.decided, 'decision')}.` : 'Shows up after the first decision.'} />
             </div>
@@ -83,7 +94,7 @@ export default function HomePage() {
                 </ul>
               ) : (
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex gap-3"><Avatar name={user.name} className="size-8" /><span>Leave of more than 3 days needs a document and two approvals, so apply early.</span></li>
+                  <li className="flex gap-3"><Avatar name={user.name} className="size-8" /><span>Leave of more than 3 days in a row needs a document and two approvals, so apply early.</span></li>
                   <li>Sundays and public holidays are not counted against your leave.</li>
                 </ul>
               )}

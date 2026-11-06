@@ -6,6 +6,7 @@ import {
   STATUSES,
   leaveBreakdown,
   consecutiveChain,
+  absenceDays,
   makeLeaveInputSchema,
   documentsAccepted,
   isLongLeave,
@@ -70,6 +71,9 @@ export function serialize(doc, user) {
     toDate: doc.toDate,
     days: doc.days,
     chainDays: doc.chainDays ?? doc.days,
+    absenceDays: doc.absenceDays ?? null,
+    splitFlag: Boolean(doc.splitFlag),
+    joinedWith: (doc.joinedWith ?? []).map((j) => ({ id: j.requestId ? String(j.requestId) : null, fromDate: j.fromDate, toDate: j.toDate, days: j.days })),
     excluded: { sundays: doc.excludedSundays ?? 0, holidays: (doc.excludedHolidays ?? []).map((h) => ({ date: h.date, name: h.name })) },
     isLong: doc.isLong,
     reason: doc.reason,
@@ -182,9 +186,13 @@ export async function chainFor(user, fromDate, toDate, excludeId = null) {
   return consecutiveChain(fromDate, toDate, others, hols);
 }
 
+/** A request is flagged when it is short on its own but joins other leave to make a long stretch: the split-up trick. */
+const isSplit = (input, chain) => chain.members.length > 0 && absenceDays(input.fromDate, input.toDate) <= 3 && chain.absenceDays > 3;
+const joined = (chain) => chain.members.map((m) => ({ requestId: m._id, fromDate: m.fromDate, toDate: m.toDate, days: m.days }));
+
 const chainNote = (chain) =>
   chain.members.length
-    ? ` Together with your other leave (${chain.members.map((m) => `${m.fromDate} to ${m.toDate}`).join(', ')}) this is ${chain.chainDays} days in a row.`
+    ? ` Together with your other leave (${chain.members.map((m) => `${m.fromDate} to ${m.toDate}`).join(', ')}) this is ${chain.absenceDays} days in a row.`
     : '';
 
 /** Emergency leaves that still owe documents. */
@@ -240,11 +248,14 @@ async function assertNoOverlap(employeeId, fromDate, toDate, excludeId) {
 }
 
 export async function createLeave(user, body, files) {
+  if (user.role === 'EMPLOYEE' && !user.managerId) {
+    throw new AppError(409, 'NO_MANAGER', 'Your account is not set up for leave yet.', 'The Head of Department needs to choose your manager first. Ask them, and then try again.');
+  }
   const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files);
   const chain = await chainFor(user, input.fromDate, input.toDate);
-  assertDocumentsAllowed(chain.chainDays, prepared.length);
-  const docMsg = documentRequirementError(chain.chainDays, prepared.length, input.isEmergency);
+  assertDocumentsAllowed(chain.absenceDays, prepared.length);
+  const docMsg = documentRequirementError(chain.absenceDays, prepared.length, input.isEmergency);
   if (docMsg) throw validationError({ documents: docMsg + chainNote(chain) }, docMsg + chainNote(chain));
   await assertNoOverlap(user.id, input.fromDate, input.toDate);
   await assertMayApply(user.id, input.isEmergency);
@@ -264,7 +275,10 @@ export async function createLeave(user, body, files) {
     excludedSundays: input.excludedSundays,
     excludedHolidays: input.excludedHolidays,
     chainDays: chain.chainDays,
-    isLong: isLongLeave(chain.chainDays),
+    absenceDays: chain.absenceDays,
+    splitFlag: isSplit(input, chain),
+    joinedWith: joined(chain),
+    isLong: isLongLeave(chain.absenceDays),
     reason: input.reason,
     isEmergency: input.isEmergency,
     status,
@@ -350,9 +364,9 @@ export async function updateLeave(id, user, body, files) {
   const input = await parseLeaveInput(body, user);
   const prepared = prepareFiles(files, doc.documents.length);
   const chain = await chainFor(user, input.fromDate, input.toDate, doc._id);
-  assertDocumentsAllowed(chain.chainDays, prepared.length);
-  const isLong = isLongLeave(chain.chainDays);
-  const docMsg = documentRequirementError(chain.chainDays, doc.documents.length + prepared.length, input.isEmergency);
+  assertDocumentsAllowed(chain.absenceDays, prepared.length);
+  const isLong = isLongLeave(chain.absenceDays);
+  const docMsg = documentRequirementError(chain.absenceDays, doc.documents.length + prepared.length, input.isEmergency);
   if (docMsg) throw validationError({ documents: docMsg + chainNote(chain) }, docMsg + chainNote(chain));
   applyAction(toSubject(doc), 'EDIT', actorOf(user), todayISO());
   await assertNoOverlap(user.id, input.fromDate, input.toDate, doc._id);
@@ -364,6 +378,9 @@ export async function updateLeave(id, user, body, files) {
   doc.excludedSundays = input.excludedSundays;
   doc.excludedHolidays = input.excludedHolidays;
   doc.chainDays = chain.chainDays;
+  doc.absenceDays = chain.absenceDays;
+  doc.splitFlag = isSplit(input, chain);
+  doc.joinedWith = joined(chain);
   doc.isLong = isLong;
   doc.reason = input.reason;
   doc.isEmergency = input.isEmergency;
@@ -394,7 +411,7 @@ export async function previewChain(user, { from, to, excludeId }) {
   const holidays = await holidaysFor(user, { from, to });
   const own = leaveBreakdown(from, to, holidays).days;
   const chain = await chainFor(user, from, to, mongoose.isValidObjectId(excludeId) ? excludeId : null);
-  return { days: own, chainDays: chain.chainDays, members: chain.members.map((m) => ({ fromDate: m.fromDate, toDate: m.toDate, days: m.days })) };
+  return { days: own, chainDays: chain.chainDays, absenceDays: chain.absenceDays, members: chain.members.map((m) => ({ fromDate: m.fromDate, toDate: m.toDate, days: m.days })) };
 }
 
 /**

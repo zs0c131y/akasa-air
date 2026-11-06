@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Leave longer than this many consecutive (inclusive, excluding Sundays and public holidays) days needs documents + HOD approval. */
+/** Leave of more than this many days in a row (calendar days away, first to last day) needs documents and HOD approval. */
 export const LONG_LEAVE_THRESHOLD_DAYS = 3;
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -104,7 +104,13 @@ export function consecutiveChain(from, to, others = [], holidays = []) {
       }
     }
   }
-  return { chainDays: own + members.reduce((n, o) => n + (o.days ?? countLeaveDays(o.fromDate, o.toDate, holidays)), 0), members, from: start, to: end };
+  return {
+    chainDays: own + members.reduce((n, o) => n + (o.days ?? countLeaveDays(o.fromDate, o.toDate, holidays)), 0),
+    absenceDays: absenceDays(start, end),
+    members,
+    from: start,
+    to: end,
+  };
 }
 
 /** Human sentence for what was left out, e.g. "1 Sunday and Diwali are not counted". Empty if nothing was excluded. */
@@ -116,6 +122,19 @@ export function excludedSummary({ sundays = 0, holidays = [] }) {
   return `${parts.join(' and ')} ${parts.length > 1 || sundays > 1 || holidays.length > 1 ? 'are' : 'is'} not counted`;
 }
 
+/**
+ * How many calendar days someone is away from first to last day, both included. Sundays and holidays in the middle are
+ * part of being away, even though they are not charged as leave. This is what the "more than 3 days in a row" rule
+ * looks at; `countLeaveDays` is what is charged.
+ */
+export function absenceDays(from, to) {
+  const a = parseISODate(from);
+  const b = parseISODate(to);
+  if (a === null || b === null || b < a) return 0;
+  return Math.round((b - a) / DAY_MS) + 1;
+}
+
+/** Long leave: more than 3 days in a row (see absenceDays). */
 export const isLongLeave = (days) => days > LONG_LEAVE_THRESHOLD_DAYS;
 
 /** Returns a friendly message if documents are required but missing, else null. */
@@ -232,6 +251,50 @@ export const infoRequestSchema = z.object({
 });
 export const replySchema = z.object({
   message: z.string().trim().max(1000, 'Please keep the reply under 1000 characters.').optional(),
+});
+
+/** Passwords: at least 8 characters with a letter and a number, and nothing obvious. Returns a friendly message, or null if fine. */
+const COMMON_PASSWORDS = ['password', '12345678', '123456789', 'qwertyuiop', 'iloveyou1', 'welcome1', 'letmein1', 'abcd1234', 'password1', 'password123'];
+export function passwordProblem(password, { email = '', name = '' } = {}) {
+  const p = String(password ?? '');
+  if (p.length < 8) return 'Use at least 8 characters.';
+  if (p.length > 128) return 'Please keep it under 128 characters.';
+  if (!/[A-Za-z]/.test(p) || !/\d/.test(p)) return 'Include at least one letter and one number.';
+  const lower = p.toLowerCase();
+  if (COMMON_PASSWORDS.some((c) => lower === c)) return 'That password is too easy to guess. Try something less common.';
+  const local = String(email).split('@')[0].toLowerCase();
+  if (local.length >= 4 && lower.includes(local)) return 'Please do not use your email name in your password.';
+  const first = String(name).trim().split(/\s+/)[0].toLowerCase();
+  if (first.length >= 4 && lower.includes(first)) return 'Please do not use your own name in your password.';
+  return null;
+}
+
+const emailField = z
+  .string({ required_error: 'Please enter your email address.' })
+  .trim()
+  .toLowerCase()
+  .max(254, 'That email address is too long.')
+  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'That does not look like an email address. Check for typos.');
+
+export const signupSchema = z
+  .object({
+    name: z.string({ required_error: 'Please tell us your name.' }).trim().min(2, 'Please enter your full name.').max(100, 'Please keep your name under 100 characters.'),
+    email: emailField,
+    password: z.string({ required_error: 'Please choose a password.' }),
+  })
+  .superRefine((v, ctx) => {
+    const problem = passwordProblem(v.password, { email: v.email, name: v.name });
+    if (problem) ctx.addIssue({ code: 'custom', path: ['password'], message: problem });
+  });
+
+export const forgotSchema = z.object({ email: emailField });
+export const resetSchema = z.object({
+  token: z.string({ required_error: 'This link is missing its code.' }).min(20, 'This link is not valid.').max(200),
+  password: z.string({ required_error: 'Please choose a new password.' }),
+});
+export const changePasswordSchema = z.object({
+  currentPassword: z.string({ required_error: 'Please enter your current password.' }).min(1, 'Please enter your current password.'),
+  newPassword: z.string({ required_error: 'Please choose a new password.' }),
 });
 
 /** Converts a zod error to { fieldName: message }. */

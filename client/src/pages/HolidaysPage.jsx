@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CircleAlert, CircleCheck, Plus, Trash2, Upload } from 'lucide-react';
 import { todayISO } from '@lms/shared';
 import { api } from '../api.js';
@@ -14,7 +15,7 @@ const weekday = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefine
 const EXAMPLE = 'date,holiday,location\n2026-11-08,Diwali,\n2026-11-01,Kannada Rajyotsava,Bengaluru';
 const ROLE = { HOD: 'Head of Department', MANAGER: 'Manager', EMPLOYEE: 'Employee' };
 
-const TABS = [['calendar', 'Calendar'], ['import', 'Import a list'], ['places', 'Locations and people']];
+const TABS = [['calendar', 'Calendar'], ['import', 'Import a list'], ['places', 'People and locations']];
 
 function Tabs({ tab, setTab }) {
   return (
@@ -260,7 +261,7 @@ function Import({ onChanged }) {
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
             <li>Dates can be 2026-11-08, 08/11/2026 or 8 Nov 2026. Numbers are read day first.</li>
             <li>Copy straight from a spreadsheet, or use commas or semicolons.</li>
-            <li>Location names must already exist. Add them on the Locations tab.</li>
+            <li>Location names must already exist. Add them on the People and locations tab.</li>
             <li>Dates that are already listed are skipped.</li>
           </ul>
         </Panel>
@@ -305,6 +306,26 @@ function Places({ locations, reloadLocations }) {
       setError(err);
     }
   };
+  const refresh = () => Promise.all([loadPeople(), reloadLocations()]);
+  const changeManager = async (p, managerId) => {
+    setError(null);
+    try {
+      await api.setManager(p.id, managerId);
+      await refresh();
+    } catch (err) {
+      setError(err);
+    }
+  };
+  const changeRole = async (p, role) => {
+    setError(null);
+    try {
+      await api.setRole(p.id, role);
+      await refresh();
+    } catch (err) {
+      setError(err);
+    }
+  };
+  const managers = (people ?? []).filter((p) => p.role === 'MANAGER');
   const move = async (p, location) => {
     setError(null);
     try {
@@ -319,27 +340,57 @@ function Places({ locations, reloadLocations }) {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="space-y-6">
         <ErrorBox error={error} />
-        <Panel title="Who works where" kicker="Decides which local holidays apply to a person">
+        <Panel title="People" kicker="Set up who reports to whom, and where they work">
           {!people && <Skeleton className="h-40 rounded-lg" />}
           <ul className="-my-2 divide-y">
             {people?.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-3 py-3">
-                <Avatar name={p.name} />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">{p.name}</span>
-                  <span className="kicker">{ROLE[p.role]}</span>
-                </span>
-                <div className="w-44">
-                  <label className="sr-only" htmlFor={`loc-${p.id}`}>Location for {p.name}</label>
-                  <Select id={`loc-${p.id}`} value={p.location ?? ''} onChange={(e) => move(p, e.target.value)}>
-                    <option value="">No location</option>
-                    {locations.map((l) => <option key={l.id} value={l.name}>{l.name}</option>)}
-                  </Select>
+              <li key={p.id} className="py-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Avatar name={p.name} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{p.name}</span>
+                      {p.needsSetup && <Badge variant="amber">New</Badge>}
+                    </span>
+                    <span className="block break-all text-sm text-muted-foreground">{p.email}</span>
+                    {p.needsSetup && <span className="mt-0.5 block text-sm font-medium">Signed up and waiting for a manager.</span>}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground" htmlFor={`role-${p.id}`}>Role</label>
+                    {p.role === 'HOD' ? (
+                      <p id={`role-${p.id}`} className="flex h-11 items-center text-sm font-semibold">{ROLE.HOD}</p>
+                    ) : (
+                      <Select id={`role-${p.id}`} value={p.role} onChange={(e) => changeRole(p, e.target.value)}>
+                        <option value="EMPLOYEE">Employee</option>
+                        <option value="MANAGER">Manager</option>
+                      </Select>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground" htmlFor={`mgr-${p.id}`}>Manager</label>
+                    {p.role === 'EMPLOYEE' ? (
+                      <Select id={`mgr-${p.id}`} value={p.managerId ?? ''} onChange={(e) => changeManager(p, e.target.value)}>
+                        <option value="" disabled>Choose a manager</option>
+                        {managers.filter((m) => m.id !== p.id).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </Select>
+                    ) : (
+                      <p id={`mgr-${p.id}`} className="flex h-11 items-center text-sm text-muted-foreground">{p.role === 'HOD' ? 'Head of department' : 'Reports to the HOD'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground" htmlFor={`loc-${p.id}`}>Location</label>
+                    <Select id={`loc-${p.id}`} value={p.location ?? ''} onChange={(e) => move(p, e.target.value)}>
+                      <option value="">No location</option>
+                      {locations.map((l) => <option key={l.id} value={l.name}>{l.name}</option>)}
+                    </Select>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs text-muted-foreground">Moving someone only affects requests they file from now on.</p>
+          <p className="mt-4 text-xs text-muted-foreground">Moving someone only affects requests they file from now on. People who still need a manager are listed first.</p>
         </Panel>
       </div>
 
@@ -374,7 +425,8 @@ function Places({ locations, reloadLocations }) {
 export default function HolidaysPage() {
   const { user } = useAuth();
   const isHod = user.role === 'HOD';
-  const [tab, setTab] = useState('calendar');
+  const [search] = useSearchParams();
+  const [tab, setTab] = useState(search.get('tab') === 'places' ? 'places' : 'calendar');
   const [locations, setLocations] = useState([]);
   const [version, setVersion] = useState(0);
 

@@ -84,7 +84,7 @@ export function HeroBoard() {
           <span className="mt-[0.4rem] size-1.5 shrink-0 rounded-full bg-flame" />
           <p className="grid min-w-0 flex-1 [grid-template-areas:'line']">
             <span data-line-a className="[grid-area:line]">Arjun asked for {plural(ARJUN.days, 'day')}, {shortRange(ARJUN.from, ARJUN.to)}. The invitation is attached.</span>
-            <span data-line-b className="opacity-0 [grid-area:line]">Rahul approved Arjun&rsquo;s request, just now. It goes to Priya, the HOD, next.</span>
+            <span data-line-b className="opacity-0 [grid-area:line]">Rahul approved Arjun&rsquo;s request, just now. It goes to the head of department next.</span>
           </p>
         </div>
 

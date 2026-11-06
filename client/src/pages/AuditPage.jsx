@@ -9,7 +9,7 @@ import { Skeleton } from '../ui/skeleton.jsx';
 
 const ACTIONS = [
   'LOGIN', 'LOGIN_FAILED', 'LEAVE_SUBMITTED', 'LEAVE_EDITED', 'LEAVE_APPROVE', 'LEAVE_REJECT', 'LEAVE_REQUEST_INFO',
-  'LEAVE_REPLY', 'LEAVE_CANCEL', 'DOCUMENT_UPLOADED', 'DOCUMENT_VIEWED', 'HOLIDAY_ADDED', 'HOLIDAY_REMOVED', 'HOLIDAYS_IMPORTED', 'LOCATION_ADDED', 'LOCATION_REMOVED', 'LOCATION_CHANGED', 'ACCESS_DENIED',
+  'LEAVE_REPLY', 'LEAVE_CANCEL', 'DOCUMENT_UPLOADED', 'DOCUMENT_VIEWED', 'HOLIDAY_ADDED', 'HOLIDAY_REMOVED', 'HOLIDAYS_IMPORTED', 'LOCATION_ADDED', 'LOCATION_REMOVED', 'LOCATION_CHANGED', 'SPLIT_LEAVE_FLAGGED', 'SIGNUP', 'EMAIL_CONFIRMED', 'PASSWORD_RESET_REQUESTED', 'PASSWORD_RESET', 'PASSWORD_CHANGED', 'MANAGER_ASSIGNED', 'ROLE_CHANGED', 'ACCESS_DENIED',
 ];
 const RED = ['ACCESS_DENIED', 'LOGIN_FAILED', 'LEAVE_REJECT'];
 const BLUE = ['LEAVE_SUBMITTED', 'LEAVE_EDITED', 'LEAVE_REPLY', 'DOCUMENT_UPLOADED', 'DOCUMENT_VIEWED'];
@@ -17,7 +17,7 @@ function tone(a) {
   if (RED.includes(a)) return 'red';
   if (a === 'LEAVE_APPROVE') return 'green';
   if (a === 'LEAVE_REQUEST_INFO') return 'purple';
-  if (a.startsWith('HOLIDAY')) return 'amber';
+  if (a.startsWith('HOLIDAY') || a === 'SPLIT_LEAVE_FLAGGED') return 'amber';
   if (BLUE.includes(a)) return 'blue';
   return 'neutral';
 }
@@ -42,7 +42,7 @@ export default function AuditPage() {
       <PageHeader
         kicker="Head of Department"
         title="Audit log"
-        description="Every sign-in, request, decision, document view, holiday change and denied attempt, in order. Entries cannot be edited or deleted."
+        description="Who did what, and when: sign-ins, requests, decisions, documents opened, holiday and account changes, and anything that was refused."
       />
       <div className="mb-5 grid gap-4 rounded-lg border bg-card p-4 shadow-soft sm:grid-cols-[14rem_minmax(0,22rem)] sm:p-5">
         <div>

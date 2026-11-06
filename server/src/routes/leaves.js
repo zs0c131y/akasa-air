@@ -14,6 +14,11 @@ async function logResult(req, action, leave, detail) {
   const last = leave.timeline.at(-1);
   await audit(req, { action, entityId: leave.id, employeeName: leave.employeeName, fromStatus: last?.fromStatus, toStatus: leave.status, detail: detail ?? last?.comment });
 }
+/** A request that is short alone but joins other leave into a stretch over 3 days is recorded for the HOD to see. */
+async function flagSplit(req, leave) {
+  const others = leave.joinedWith.map((j) => `${j.fromDate} to ${j.toDate}`).join(', ');
+  await audit(req, { action: 'SPLIT_LEAVE_FLAGGED', entityId: leave.id, employeeName: leave.employeeName, detail: `${leave.fromDate} to ${leave.toDate} follows ${others}: ${leave.absenceDays} days in a row` });
+}
 const docCount = (req) => (req.files?.length ? `${req.files.length} document(s) uploaded` : undefined);
 
 const upload = multer({
@@ -48,6 +53,7 @@ leavesRouter.get('/', async (req, res) => {
 leavesRouter.post('/', upload, async (req, res) => {
   const leave = await svc.createLeave(req.user, req.body, req.files);
   await logResult(req, 'LEAVE_SUBMITTED', leave, `${leave.days} day(s)${leave.isEmergency ? ', emergency' : ''}${leave.isLong ? ', long leave' : ''}; ${docCount(req) ?? 'no documents'}${req.user.role === 'HOD' ? '; HOD leave auto-approved' : ''}`);
+  if (leave.splitFlag) await flagSplit(req, leave);
   res.status(201).json(leave);
 });
 
@@ -58,6 +64,7 @@ leavesRouter.get('/:id', async (req, res) => {
 leavesRouter.patch('/:id', upload, async (req, res) => {
   const leave = await svc.updateLeave(req.params.id, req.user, req.body, req.files);
   await logResult(req, 'LEAVE_EDITED', leave, docCount(req));
+  if (leave.splitFlag) await flagSplit(req, leave);
   res.json(leave);
 });
 

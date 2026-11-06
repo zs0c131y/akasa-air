@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
-import { LogOut, WifiOff } from 'lucide-react';
+import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
+import { LogOut, UserCog, WifiOff } from 'lucide-react';
 import { useAuth } from './auth.jsx';
 import { Avatar, Brand } from './components.jsx';
 import { TextSizeMenu, ThemeToggle } from './theme.jsx';
@@ -14,6 +14,11 @@ import AuditPage from './pages/AuditPage.jsx';
 import HolidaysPage from './pages/HolidaysPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import HomePage from './pages/HomePage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
+import AccountPage from './pages/AccountPage.jsx';
 
 // The landing page carries the animation and 3D libraries; signed-in users never download them.
 const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
@@ -46,6 +51,7 @@ const ROLE_LABEL = { HOD: 'Head of Department', MANAGER: 'Manager', EMPLOYEE: 'E
 
 function Shell({ children }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isApprover = user.role !== 'EMPLOYEE';
   const links = (
     <>
@@ -81,6 +87,7 @@ function Shell({ children }) {
                   <span className="kicker block">{ROLE_LABEL[user.role]}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate('/account')}><UserCog className="size-4" aria-hidden="true" />Account</DropdownMenuItem>
                 <DropdownMenuItem onSelect={logout}><LogOut className="size-4" aria-hidden="true" />Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -103,6 +110,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
@@ -112,6 +123,9 @@ export default function App() {
   return (
     <Shell>
       <Routes>
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/leaves/:id/edit" element={<ApplyPage />} />
         <Route path="/mine" element={<ListPage key="mine" scope="mine" title="My requests" kicker="Your leave" description="Every request you have made, and where each one stands." />} />

@@ -7,12 +7,20 @@ Every error has one shape:
 ```json
 { "error": { "code": "VALIDATION_FAILED", "message": "…", "hint": "…", "fields": { "toDate": "…" } } }
 ```
-Codes: `VALIDATION_FAILED` 400, `BAD_INPUT` 400, `UPLOAD_FAILED` 400, `UNAUTHENTICATED` 401, `BAD_CREDENTIALS` 401, `FORBIDDEN` 403, `CSRF_BLOCKED` 403, `CORS_BLOCKED` 403, `NOT_FOUND` 404, `ILLEGAL_TRANSITION` 409, `STALE_REQUEST` 409, `OVERLAPPING_LEAVE` 409, `HOLIDAY_EXISTS` 409, `LOCATION_EXISTS` 409, `LOCATION_IN_USE` 409, `DOCUMENTS_OVERDUE` 409, `ACCOUNT_LOCKED` 423, `TOO_MANY_REQUESTS` 429, `INTERNAL` 500.
+Codes: `VALIDATION_FAILED` 400, `BAD_INPUT` 400, `UPLOAD_FAILED` 400, `UNAUTHENTICATED` 401, `BAD_CREDENTIALS` 401, `FORBIDDEN` 403, `CSRF_BLOCKED` 403, `CORS_BLOCKED` 403, `NOT_FOUND` 404, `ILLEGAL_TRANSITION` 409, `STALE_REQUEST` 409, `OVERLAPPING_LEAVE` 409, `HOLIDAY_EXISTS` 409, `LOCATION_EXISTS` 409, `LOCATION_IN_USE` 409, `ACCOUNT_EXISTS` 409, `NO_MANAGER` 409, `HAS_REPORTS` 409, `LINK_INVALID` 400, `WRONG_PASSWORD` 400, `EMAIL_NOT_VERIFIED` 403, `DOCUMENTS_OVERDUE` 409, `ACCOUNT_LOCKED` 423, `TOO_MANY_REQUESTS` 429, `INTERNAL` 500.
 
 ## Endpoints
 | Method and path | Who | Purpose |
 |---|---|---|
 | `POST /auth/login` `{email,password}` | public | Sign in; sets cookies; returns `{token,user}` |
+| `POST /auth/signup` `{name,email,password}` | public | Create an employee account. No manager or location yet: the HOD sets them. `409 ACCOUNT_EXISTS`. Returns `needsVerification` (true when email is configured) |
+| `POST /auth/verify-email` `{token}` | public | Confirm the address from the emailed link (24 h, single use) |
+| `POST /auth/resend-verification` `{email}` | public | Send the confirmation again (same answer whether or not the address exists) |
+| `POST /auth/forgot-password` `{email}` | public | Email a reset link (60 min, single use). Same answer for unknown addresses |
+| `POST /auth/check-reset` `{token}` | public | Is a reset link still valid? |
+| `POST /auth/reset-password` `{token,password}` | public | Choose a new password; signs out other devices and clears a lockout |
+| `POST /auth/change-password` `{currentPassword,newPassword}` | signed in | Change password; other devices are signed out |
+| `GET /auth/options` | public | `{emailEnabled}` |
 | `POST /auth/refresh` | cookie | Rotate refresh token, new access cookie |
 | `POST /auth/logout` | any | Revoke refresh token, clear cookies |
 | `GET /auth/me` | signed in | Current user |
@@ -38,7 +46,9 @@ Codes: `VALIDATION_FAILED` 400, `BAD_INPUT` 400, `UPLOAD_FAILED` 400, `UNAUTHENT
 | `GET /locations` | signed in | Work locations with how many people and local holidays each has |
 | `POST /locations` `{name}` | HOD | Add a location (`409 LOCATION_EXISTS`) |
 | `DELETE /locations/:id` | HOD | Remove a location; `409 LOCATION_IN_USE` while it has people or holidays |
-| `GET /people` | HOD | Everyone with their role and location |
+| `GET /people` | HOD | Everyone with role, email, location, manager; people who still need a manager come first (`needsSetup`) |
+| `PATCH /people/:id/manager` `{managerId}` | HOD | Choose an employee's manager (must be a manager) |
+| `PATCH /people/:id/role` `{role}` | HOD | `EMPLOYEE` or `MANAGER` (409 if a manager still has people reporting to them) |
 | `PATCH /people/:id/location` `{location}` | HOD | Set where someone works (`null` or empty = none) |
 | `GET /audit?action=&q=&page=` | HOD | Audit log |
 | `GET /health` (not under `/api`) | public | Liveness + DB status |

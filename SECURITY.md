@@ -15,6 +15,6 @@
 ## Known limitations
 - Demo accounts share one password and the sign-in page has one-click demo login. **Remove the demo buttons and set `SEED=false` for real use.**
 - Uploaded files are not virus-scanned. Files live on local disk.
-- No email verification, password reset or MFA.
+- No MFA. Sign-up, email confirmation and password reset exist (one-time links, stored only as hashes, 24 h and 60 min, single use; resetting signs out every session). Without Mailgun configured, links are only printed to the server console outside production and, in production, accounts are usable without confirming the email and reset emails cannot be sent: set the Mailgun variables before real use.
 - Rate-limit counters are in memory (per process).
 - No automated dependency audit in CI.

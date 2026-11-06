@@ -80,7 +80,12 @@ const SKIN = ['#F3D2B3', '#E3B58A', '#C58C5E', '#9A6240', '#6E4429'];
 const HAIR = ['#1B1410', '#2E211A', '#5A3B26', '#8A5A33', '#C9A06A', '#3A3A3A'];
 const SHIRT = ['#1F2A37', '#2F5D50', '#7A3B2E', '#35507A', '#4B3F72', '#8A6D1F', '#2B2B2B'];
 const BG = ['#FFE3D2', '#DDEBD9', '#DCE8F7', '#EFE1F5', '#F6E8B8', '#E6E3DA'];
-const STYLES = ['short', 'long', 'curly', 'bun', 'cap', 'bald'];
+const MALE_STYLES = ['short', 'crop', 'curly', 'cap', 'bald'];
+const FEMALE_STYLES = ['long', 'bun', 'bob', 'pony', 'wavy'];
+
+/* Common first names, so a face matches the name it sits next to. Anything not listed gets a style picked from the name. */
+const FEMALE_NAMES = new Set(['priya', 'ananya', 'kavya', 'sneha', 'meera', 'asha', 'nina', 'divya', 'pooja', 'neha', 'riya', 'isha', 'anjali', 'deepa', 'lakshmi', 'shreya', 'swati', 'tanvi', 'aditi', 'sunita', 'kriti', 'nisha', 'radha', 'sara', 'fatima', 'zoya', 'aisha', 'anita', 'rekha', 'shweta', 'preeti', 'simran', 'jyoti', 'kiran', 'maya', 'sana', 'ayesha', 'mansi', 'ritu', 'tara']);
+const MALE_NAMES = new Set(['rahul', 'arjun', 'rohan', 'imran', 'dev', 'amit', 'vikram', 'rajesh', 'suresh', 'karan', 'aman', 'raj', 'ravi', 'sanjay', 'manoj', 'nikhil', 'sachin', 'ajay', 'vijay', 'rohit', 'sameer', 'farhan', 'irfan', 'omar', 'yash', 'harsh', 'varun', 'aditya', 'siddharth', 'kunal', 'mohit', 'gaurav', 'ankit', 'deepak', 'pranav', 'tarun', 'naveen', 'arun', 'abhishek', 'zaid']);
 
 function hash(str) {
   let h = 2166136261;
@@ -95,17 +100,24 @@ export function Person({ name = '', className, title }) {
   const hair = pick(HAIR, 3);
   const shirt = pick(SHIRT, 6);
   const bg = pick(BG, 9);
-  const style = pick(STYLES, 12);
-  const beard = (h >>> 15) % 5 === 0 && style !== 'long';
+  const first = String(name).trim().split(/\s+/)[0].toLowerCase();
+  const female = FEMALE_NAMES.has(first) ? true : MALE_NAMES.has(first) ? false : (h >>> 20) % 2 === 0;
+  const style = pick(female ? FEMALE_STYLES : MALE_STYLES, 12);
+  const beard = !female && (h >>> 15) % 3 === 0 && style !== 'cap';
   return (
     <svg viewBox="0 0 64 64" role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true} focusable="false" className={cn('size-10 shrink-0 rounded-full', className)}>
       <rect width="64" height="64" fill={bg} />
-      {style === 'long' && <path d="M17 30c0-12 7-18 15-18s15 6 15 18v22H17V30Z" fill={hair} />}
+      {(style === 'long' || style === 'wavy') && <path d="M16 31c0-13 7-19 16-19s16 6 16 19v23H16V31Z" fill={hair} />}
+      {style === 'pony' && <path d="M46 24c6 2 8 10 5 20-2 4-6 4-8 1 3-6 3-14 3-21Z" fill={hair} />}
       <path d="M8 64c1-11 9-17 24-17s23 6 24 17H8Z" fill={shirt} />
+      {female && <path d="M26 48c2 5 10 5 12 0" fill="none" stroke={skin} strokeWidth="3" strokeLinecap="round" />}
       <rect x="27" y="38" width="10" height="11" rx="4" fill={skin} />
       <ellipse cx="32" cy="29" rx="11" ry="12.5" fill={skin} />
-      {style === 'short' && <path d="M20.5 27c-1-9 5-14 11.5-14s12.500 5 11.500 14c-2-5-6-7-11.500-7s-9.500 2-11.500 7Z" fill={hair} />}
+      {(style === 'short' || style === 'crop') && <path d="M20.500 27c-1-9 5-14 11.500-14s12.500 5 11.500 14c-2-5-6-7-11.500-7s-9.500 2-11.500 7Z" fill={hair} />}
       {style === 'long' && <path d="M20.500 28c-1.500-9 4-15 11.500-15s13 6 11.500 15c-1-6-5-9-11.500-9S21.500 22 20.500 28Z" fill={hair} />}
+      {style === 'wavy' && <path d="M20 29c-2-10 4-16 12-16s14 6 12 16c-2-3-4-4-6-8-3 4-9 4-12 0-2 4-4 5-6 8Z" fill={hair} />}
+      {style === 'bob' && <path d="M19 36c-3-14 3-23 13-23s16 9 13 23c-1-6-3-9-6-11-4 3-10 3-14 0-3 2-5 5-6 11Z" fill={hair} />}
+      {style === 'pony' && <path d="M20.500 27c-1-9 5-14 11.500-14s12.500 5 11.500 14c-2-5-6-7-11.500-7s-9.500 2-11.500 7Z" fill={hair} />}
       {style === 'curly' && (
         <g fill={hair}>
           <circle cx="22" cy="21" r="6" /><circle cx="29" cy="16" r="6.500" /><circle cx="37" cy="16" r="6.500" /><circle cx="43" cy="21" r="6" /><circle cx="32" cy="19" r="7" />

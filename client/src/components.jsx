@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Ban, CircleAlert, CircleCheck, CircleHelp, CircleX, Clock, Hourglass } from 'lucide-react';
+import { useAuth } from './auth.jsx';
 import { STATUSES, STATUS_LABELS, excludedSummary } from '@lms/shared';
 import { ClosedGate, LostTag, Person, Unplugged } from './illustrations.jsx';
 import { Badge } from './ui/badge.jsx';
@@ -9,11 +10,11 @@ import { cn } from './lib/utils.js';
 
 export const PRODUCT_NAME = 'Layover';
 
-/** Akasa Air logo (drop the official file at public/brand/akasa-air-logo.svg) next to the name, with the product name beside it. */
+/** Akasa Air logo (public/brand/akasa-air-logo.png) next to the name, with the product name beside it. */
 export function Brand({ className, compact = false }) {
   return (
     <span className={cn('inline-flex items-center gap-3', className)}>
-      <img src="/brand/akasa-air-logo.svg" alt="" width="32" height="32" className="size-8 shrink-0" />
+      <img src="/brand/akasa-air-logo.png" alt="" width="38" height="26" className="h-[1.6rem] w-auto shrink-0" />
       <span className="flex items-baseline gap-2.5 leading-none">
         <span className="text-[1.05rem] font-bold tracking-tight">Akasa Air</span>
         {!compact && <span aria-hidden="true" className="h-4 w-px self-center bg-foreground/30" />}
@@ -51,13 +52,29 @@ export const STATUS_BAR = {
   CANCELLED: 'bg-status-grey-fg',
 };
 
-/** Status chip: a pill with colour, icon and word, never colour alone. */
-export function StatusChip({ status, className }) {
+/**
+ * The words on a status chip, from the point of view of whoever is looking. The person who has to decide sees
+ * "Waiting for you"; the employee sees who has it ("With your manager"); everyone else sees the plain status.
+ */
+export function statusLabelFor(status, leave, user) {
+  if (!leave || !user) return STATUS_LABELS[status];
+  const mine = leave.employeeId === user.id;
+  const actions = leave.allowedActions ?? [];
+  if (actions.includes('APPROVE')) return 'Waiting for you';
+  if (status === 'INFO_REQUESTED') return mine ? 'Waiting for your reply' : 'Waiting for their reply';
+  if (status === 'PENDING_MANAGER') return mine ? 'With your manager' : 'With the manager';
+  if (status === 'PENDING_HOD') return 'With the HOD';
+  return STATUS_LABELS[status];
+}
+
+/** Status chip: a pill with colour, icon and word, never colour alone. Pass `leave` to word it for the person looking. */
+export function StatusChip({ status, leave, className }) {
   const { icon: Icon, variant } = STATUS_STYLE[status];
+  const { user } = useAuth() ?? {};
   return (
     <Badge variant={variant} data-status={status} className={cn('gap-1.5 rounded-full px-2.5 py-1 text-[0.78rem] font-semibold', className)}>
       <Icon className="size-3.5" aria-hidden="true" strokeWidth={2.4} />
-      {STATUS_LABELS[status]}
+      {statusLabelFor(status, leave, user)}
     </Badge>
   );
 }
@@ -66,6 +83,7 @@ export function Badges({ leave }) {
   return (
     <>
       {leave.isLong && <Badge variant="blue">Long leave</Badge>}
+      {leave.splitFlag && <Badge variant="amber">In a row with other leave</Badge>}
       {leave.isEmergency && <Badge variant="red">Emergency</Badge>}
       {leave.documentsPending && <Badge variant="amber">Documents due {leave.documentsDueBy}</Badge>}
     </>
@@ -148,7 +166,7 @@ export function StatusLegend() {
   );
 }
 
-export const FieldError = ({ msg, id }) => (msg ? <p id={id} className="mt-1.5 text-sm font-medium text-destructive">{msg}</p> : null);
+export const FieldError = ({ msg, id }) => (msg ? <p id={id} role="alert" className="mt-1.5 text-sm font-medium text-destructive">{msg}</p> : null);
 
 export function PageHeader({ title, description, kicker, children }) {
   return (

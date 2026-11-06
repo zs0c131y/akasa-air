@@ -49,6 +49,16 @@ async function request(path, { method = 'GET', json, form, raw, retry = true } =
 
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', json: { email, password } }),
+  authOptions: () => request('/auth/options'),
+  signup: (json) => request('/auth/signup', { method: 'POST', json }),
+  verifyEmail: (token) => request('/auth/verify-email', { method: 'POST', json: { token } }),
+  resendVerification: (email) => request('/auth/resend-verification', { method: 'POST', json: { email } }),
+  forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', json: { email } }),
+  checkReset: (token) => request('/auth/check-reset', { method: 'POST', json: { token } }),
+  resetPassword: (token, password) => request('/auth/reset-password', { method: 'POST', json: { token, password } }),
+  changePassword: (currentPassword, newPassword) => request('/auth/change-password', { method: 'POST', json: { currentPassword, newPassword } }),
+  setManager: (id, managerId) => request(`/people/${id}/manager`, { method: 'PATCH', json: { managerId } }),
+  setRole: (id, role) => request(`/people/${id}/role`, { method: 'PATCH', json: { role } }),
   me: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }),
   chain: (from, to, excludeId) => request(`/leaves/chain?${new URLSearchParams({ from, to, ...(excludeId ? { excludeId } : {}) })}`),

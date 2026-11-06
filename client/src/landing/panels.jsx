@@ -1,12 +1,9 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { CalendarDays, Check, Paperclip } from 'lucide-react';
+import { CalendarDays, Check, Flag, Paperclip } from 'lucide-react';
 import { LONG_LEAVE_THRESHOLD_DAYS, MAX_FILES } from '@lms/shared';
 import { ACTION_LABELS, Avatar, StatusChip } from '../components.jsx';
 import { Badge } from '../ui/badge.jsx';
 import { cn } from '../lib/utils.js';
 import { ARJUN, HOLIDAYS, SHORT, dayLabel, plural, shortRange } from './sample.js';
-
-const Globe = lazy(() => import('../Globe.jsx'));
 
 /**
  * A dark, rounded frame for a piece of mock UI. The mock itself is hidden from screen readers (its buttons are
@@ -113,7 +110,7 @@ const THREAD = [
 /** 2. The approval path: manager, then HOD, with the conversation on the request. */
 export function ApprovalPanel() {
   return (
-    <Panel summary={`Arjun Sharma's request for ${plural(ARJUN.days, 'day')}. Rahul, his manager, asked who covers his shifts, Arjun replied, and Rahul approved. It is now waiting for Priya, the head of department, who can approve, reject or ask for more information.`}>
+    <Panel summary={`Arjun Sharma's request for ${plural(ARJUN.days, 'day')}. Rahul, his manager, asked who covers his shifts, Arjun replied, and Rahul approved. It is now waiting for the head of department, who can approve, reject or ask for more information.`}>
       <Window title="Leave request" aside={<StatusChip status="PENDING_HOD" className="px-1.5 py-0.5 text-[0.7rem]" />}>
         <div className="flex items-center gap-3">
           <Avatar name="Arjun Sharma" className="size-10" />
@@ -130,7 +127,7 @@ export function ApprovalPanel() {
           </li>
           <li className="rounded-md border border-status-blue-fg/40 bg-status-blue-bg px-3 py-2 text-status-blue-fg">
             <span className="kicker block text-current">2 · HOD</span>
-            <span className="mt-0.5 block font-semibold">With Priya now</span>
+            <span className="mt-0.5 block font-semibold">With the HOD now</span>
           </li>
         </ol>
 
@@ -167,7 +164,7 @@ const AUDIT = [
 /** 3. The holiday calendar the HOD keeps, beside the audit log that records changes to it. */
 export function CalendarPanel() {
   return (
-    <Panel summary="The holiday calendar, with Diwali added by Priya Nair and the fixed national holidays added by the system, and the audit log showing that addition, an approval and a document being opened.">
+    <Panel summary="The holiday calendar, with Diwali added by the HOD and the fixed national holidays added by the system, and the audit log showing that addition, an approval and a document being opened.">
       <div className="grid gap-3 sm:grid-cols-2">
         <Window title="Holidays" aside={<span className="kicker">HOD only edits</span>}>
           <ul className="divide-y divide-border">
@@ -204,45 +201,30 @@ export function CalendarPanel() {
   );
 }
 
-/** Loads the globe only on wide screens, and only once the panel is close to the viewport. */
-function useGlobeWanted(ref) {
-  const [wanted, setWanted] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    const wide = window.matchMedia?.('(min-width: 1024px)');
-    if (!el || !wide || typeof IntersectionObserver === 'undefined') return undefined;
-    let near = false;
-    const update = () => setWanted(near && wide.matches);
-    const io = new IntersectionObserver(([e]) => { near = near || e.isIntersecting; update(); }, { rootMargin: '400px 0px' });
-    io.observe(el);
-    wide.addEventListener('change', update);
-    return () => { io.disconnect(); wide.removeEventListener('change', update); };
-  }, [ref]);
-  return wanted;
-}
+const FRI = sampleLeave('Sneha Kulkarni', '2027-10-08', '2027-10-09', { reason: 'Family visit' });
+const MON = sampleLeave('Sneha Kulkarni', '2027-10-11', '2027-10-13', { reason: 'Family visit, part two' });
 
-/** 4. One holiday calendar and one set of rules for people in many places. The globe is decoration. */
-export function NetworkPanel() {
-  const ref = useRef(null);
-  const showGlobe = useGlobeWanted(ref);
-  const next = HOLIDAYS.find((h) => h.name === 'Christmas Day');
+/** 4. The same person filing a long leave in two pieces: the second piece is caught and flagged. */
+export function SplitPanel() {
   return (
-    <Panel summary="A globe facing India, for illustration only, with a note that one holiday calendar applies to everyone." className="p-0 sm:p-0">
-      <div ref={ref} className="gridlines relative h-[19rem] sm:h-[24rem] lg:h-[28rem]">
-        {showGlobe && (
-          <Suspense fallback={null}>
-            <Globe className="absolute inset-0" />
-          </Suspense>
-        )}
-        <p className="kicker absolute left-4 top-4 sm:left-5 sm:top-5">For illustration, not a route map</p>
-        <div className="absolute bottom-4 left-4 right-4 max-w-[17rem] rounded-lg border border-border bg-card p-4 sm:bottom-5 sm:left-5">
-          <p className="kicker">Holiday calendar</p>
-          <p className="mt-2 flex items-center gap-2 text-sm font-semibold">
-            <CalendarDays className="size-4 shrink-0 text-brand" />
-            {next.name}, {dayLabel(next.date)}
+    <Panel summary="Sneha asked for Friday and Saturday, which was approved. She then asked for Monday to Wednesday. Together that is six days in a row, so the second request needs a document and the head of department, and it is flagged for the approver.">
+      <div className="space-y-3">
+        <Window title="Sneha Kulkarni" aside={<StatusChip status="APPROVED" />}>
+          <p className="text-[0.82rem] font-semibold">{shortRange(FRI.from, FRI.to)} · {plural(FRI.days, 'leave day')}</p>
+          <p className="text-[0.72rem] text-muted-foreground">{FRI.reason}. Short on its own, so the manager approved it.</p>
+        </Window>
+        <Window title="A few days later" aside={<StatusChip status="PENDING_MANAGER" />}>
+          <p className="text-[0.82rem] font-semibold">{shortRange(MON.from, MON.to)} · {plural(MON.days, 'leave day')}</p>
+          <p className="text-[0.72rem] text-muted-foreground">{MON.reason}</p>
+          <p className="mt-3 flex items-start gap-2 rounded-md bg-status-amber-bg px-3 py-2 text-[0.75rem] font-medium text-status-amber-fg">
+            <Flag className="mt-0.5 size-3.5 shrink-0" />
+            <span>Follows {shortRange(FRI.from, FRI.to)}. Together that is 6 days in a row, so this one needs a document and the head of department.</span>
           </p>
-          <p className="mt-1 text-[0.78rem] text-muted-foreground">Applies to everyone, wherever they are based.</p>
-        </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge variant="blue">Long leave</Badge>
+            <Badge variant="amber">In a row with other leave</Badge>
+          </div>
+        </Window>
       </div>
     </Panel>
   );

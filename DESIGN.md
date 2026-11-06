@@ -16,7 +16,7 @@ Three sources, mixed:
 What we do not do: gradients, glows, blobs, glassmorphism, emoji as icons, stock illustration, invented customer logos, invented statistics or testimonials, lorem ipsum, centred-everything template layouts, or icon-in-a-rounded-square feature tiles.
 
 ## Brand
-- Header lockup: Akasa Air logo (file at `client/public/brand/akasa-air-logo.svg`, currently a placeholder to be replaced with the official asset) + "Akasa Air", then a thin divider and "Layover". `Brand` in `components.jsx`.
+- Header lockup: Akasa Air logo (file at `client/public/brand/akasa-air-logo.png`, the official mark on a transparent background) + "Akasa Air", then a thin divider and "Layover". `Brand` in `components.jsx`.
 - Favicon is a separate generic mark (`client/public/favicon.svg`), deliberately not the Akasa logo.
 
 ## Type
@@ -67,4 +67,4 @@ Visible focus ring, skip link, 44px touch targets, labelled fields, errors with 
 Public: `/` landing, `/login` sign-in with one-click demo people. Signed in: `/apply`, `/leaves/:id/edit`, `/mine`, `/queue`, `/team`, `/leaves/:id`, `/holidays`, `/audit`.
 
 ## Placeholders to fill before going public
-`client/src/site.js` has `CONTACT_EMAIL`. Empty, the "have it run for you" card links to the demo. Replace the placeholder logo file. There are no prices on purpose.
+`client/src/site.js` has `CONTACT_EMAIL`. Empty, the "have it run for you" card links to the demo. There are no prices on purpose.

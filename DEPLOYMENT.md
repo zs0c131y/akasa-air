@@ -22,3 +22,17 @@ Open the public URL, sign in with a demo button, apply for leave, approve it as 
 - *Could not connect to any servers*: Atlas Network Access does not allow the host IP.
 - Signed out on every request: the site must be served over HTTPS (secure cookies).
 - The embedded MongoDB is for local use only; it cannot run on Alpine images.
+
+## Email (sign-up confirmation and password reset)
+Set these in Railway to turn email on. They are the same variables the other projects use.
+
+| Variable | Value |
+|---|---|
+| `APP_URL` | The public address of the app, such as `https://your-app.up.railway.app`. Links in emails start with this. |
+| `MAILGUN_API_KEY` | Your Mailgun API key |
+| `FROM_EMAIL` | An address on a sending domain that is active in your Mailgun account |
+| `MAILGUN_BASE_URL` | `https://api.mailgun.net` (or `https://api.eu.mailgun.net` for the EU region) |
+| `MAILGUN_SENDER_NAME` | Optional. Defaults to `Layover` |
+| `ALLOWED_EMAIL_DOMAINS` | Optional. Only these domains can sign up, for example `example.com` |
+
+Without these, nothing is emailed: people who sign up can sign in at once, and "forgot password" cannot reach anyone. Set them before real use.

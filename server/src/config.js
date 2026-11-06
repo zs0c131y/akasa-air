@@ -61,6 +61,25 @@ export const config = {
   get clientDist() {
     return path.join(root, 'client', 'dist');
   },
+  /** Public address of the app, used in the links inside emails. */
+  get appUrl() {
+    return (process.env.APP_URL || `http://localhost:${process.env.PORT ?? 4000}`).replace(/\/+$/, '');
+  },
+  /** Mailgun HTTP API (same variables as the other projects). All three of key, sender and domain are needed to send. */
+  get mailgun() {
+    const senderEmail = process.env.FROM_EMAIL || '';
+    return {
+      apiKey: process.env.MAILGUN_API_KEY || '',
+      baseUrl: (process.env.MAILGUN_BASE_URL || 'https://api.mailgun.net').replace(/\/+$/, ''),
+      senderEmail,
+      senderName: process.env.MAILGUN_SENDER_NAME || 'Layover',
+      domain: senderEmail.split('@')[1] || '',
+    };
+  },
+  /** Optional comma-separated list of email domains allowed to sign up (empty = any). */
+  get allowedEmailDomains() {
+    return (process.env.ALLOWED_EMAIL_DOMAINS ?? '').split(',').map((s) => s.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
+  },
   get seedOnStart() {
     return process.env.SEED !== 'false';
   },

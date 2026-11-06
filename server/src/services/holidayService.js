@@ -146,8 +146,62 @@ export async function removeLocation(id) {
 }
 
 export async function listPeople() {
-  const users = await User.find({}, { name: 1, role: 1, location: 1, managerId: 1 }).sort({ role: 1, name: 1 }).lean();
-  return users.map((u) => ({ id: String(u._id), name: u.name, role: u.role, location: u.location ?? null }));
+  const users = await User.find({}, { name: 1, email: 1, role: 1, location: 1, managerId: 1, emailVerified: 1, createdAt: 1 }).sort({ createdAt: -1 }).lean();
+  const names = Object.fromEntries(users.map((u) => [String(u._id), u.name]));
+  const order = { HOD: 0, MANAGER: 1, EMPLOYEE: 2 };
+  return users
+    .map((u) => ({
+      id: String(u._id),
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      location: u.location ?? null,
+      managerId: u.managerId ? String(u.managerId) : null,
+      managerName: u.managerId ? names[String(u.managerId)] ?? null : null,
+      emailVerified: u.emailVerified !== false,
+      // New sign-ups appear first, until the HOD gives them a manager.
+      needsSetup: u.role === 'EMPLOYEE' && !u.managerId,
+    }))
+    .sort((a, b) => Number(b.needsSetup) - Number(a.needsSetup) || order[a.role] - order[b.role] || a.name.localeCompare(b.name));
+}
+
+/** Who someone reports to. Employees report to a manager; managers report to the HOD (set automatically). */
+export async function setPersonManager(id, managerId) {
+  const user = await User.findById(id).catch(() => null);
+  if (!user) throw new AppError(404, 'NOT_FOUND', 'We could not find that person.');
+  if (user.role !== 'EMPLOYEE') throw validationError({ managerId: 'Only employees have a manager chosen here. Managers report to the HOD.' });
+  const boss = await User.findOne({ _id: managerId, role: 'MANAGER' }).catch(() => null);
+  if (!boss) throw validationError({ managerId: 'Please choose one of the managers.' });
+  user.managerId = boss._id;
+  await user.save();
+  return { id: String(user._id), name: user.name, managerName: boss.name, from: null };
+}
+
+/** Promote an employee to manager, or move a manager back to employee (not while people report to them). */
+export async function setPersonRole(id, role) {
+  const user = await User.findById(id).catch(() => null);
+  if (!user) throw new AppError(404, 'NOT_FOUND', 'We could not find that person.');
+  if (user.role === 'HOD') throw new AppError(409, 'HOD_FIXED', 'The Head of Department role cannot be changed here.');
+  if (!['EMPLOYEE', 'MANAGER'].includes(role)) throw validationError({ role: 'Choose Employee or Manager.' });
+  const from = user.role;
+  if (role === from) return { id: String(user._id), name: user.name, role, from };
+  if (role === 'MANAGER') {
+    const hod = await User.findOne({ role: 'HOD' });
+    user.role = 'MANAGER';
+    user.managerId = hod?._id ?? null;
+  } else {
+    const reports = await User.countDocuments({ managerId: user._id });
+    if (reports > 0) throw new AppError(409, 'HAS_REPORTS', `${user.name} still has ${reports} ${reports === 1 ? 'person' : 'people'} reporting to them.`, 'Give those people another manager first.');
+    user.role = 'EMPLOYEE';
+    user.managerId = null;
+  }
+  await user.save();
+  return { id: String(user._id), name: user.name, role: user.role, from };
+}
+
+/** Signed-up people who still have no manager. */
+export async function countAwaitingSetup() {
+  return User.countDocuments({ role: 'EMPLOYEE', managerId: null });
 }
 
 export async function setPersonLocation(id, rawLocation) {

@@ -43,7 +43,7 @@ beforeAll(async () => {
   app = createApp();
   const emails = {
     hod: 'priya.nair@akasa.demo', rahul: 'rahul.mehta@akasa.demo', ananya: 'ananya.iyer@akasa.demo',
-    arjun: 'arjun.sharma@akasa.demo', sneha: 'sneha.kulkarni@akasa.demo',
+    arjun: 'arjun.sharma@akasa.demo', sneha: 'sneha.kulkarni@akasa.demo', kavya: 'kavya.reddy@akasa.demo',
   };
   for (const [k, e] of Object.entries(emails)) tokens[k] = await login(e);
   // clear seeded requests so date ranges in tests never collide
@@ -529,5 +529,50 @@ describe('leave in a row', () => {
     const far = await request(app).get(`/api/leaves/chain?from=${day(280)}&to=${day(281)}`).set(as('arjun'));
     expect(far.body.members).toEqual([]);
     expect(far.body.chainDays).toBe(far.body.days);
+  });
+});
+
+describe('more than 3 days in a row, and split-up requests', () => {
+  // A Friday well ahead of the other tests.
+  let fri = 100;
+  while (new Date(parseISODate(todayISO()) + fri * 86400000).getUTCDay() !== 5) fri += 1;
+  const at = (n) => new Date(parseISODate(todayISO()) + (fri + n) * 86400000).toISOString().slice(0, 10);
+  let firstId;
+
+  it('Friday to Monday is four days away, so it is long even though only three are charged', async () => {
+    const bare = await submit('kavya', { fromDate: at(14), toDate: at(17), reason: 'Long weekend' });
+    expect(bare.status).toBe(400);
+    expect(bare.body.error.fields.documents).toMatch(/supporting document/);
+    const ok = await submit('kavya', { fromDate: at(14), toDate: at(17), reason: 'Long weekend' }, [{}]);
+    expect(ok.status).toBe(201);
+    expect(ok.body).toMatchObject({ days: 3, absenceDays: 4, isLong: true, status: 'PENDING_MANAGER' });
+  });
+
+  it('two days on Friday and Saturday is fine on its own', async () => {
+    const r = await submit('kavya', { fromDate: at(0), toDate: at(1), reason: 'Family visit' });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ isLong: false, splitFlag: false, absenceDays: 2 });
+    firstId = r.body.id;
+  });
+
+  it('Monday to Wednesday straight after is caught: it needs a document and is flagged', async () => {
+    const bare = await submit('kavya', { fromDate: at(3), toDate: at(5), reason: 'Family visit, part two' });
+    expect(bare.status).toBe(400);
+    expect(bare.body.error.fields.documents).toMatch(/6 days in a row/);
+
+    const ok = await submit('kavya', { fromDate: at(3), toDate: at(5), reason: 'Family visit, part two' }, [{}]);
+    expect(ok.status).toBe(201);
+    expect(ok.body).toMatchObject({ days: 3, chainDays: 5, absenceDays: 6, isLong: true, splitFlag: true });
+    expect(ok.body.joinedWith).toEqual([{ id: firstId, fromDate: at(0), toDate: at(1), days: 2 }]);
+
+    // the manager sees the flag, and it is in the audit log
+    const seen = await request(app).get(`/api/leaves/${ok.body.id}`).set(as('rahul'));
+    expect(seen.body.splitFlag).toBe(true);
+    await new Promise((res) => setTimeout(res, 150));
+    const log = await request(app).get('/api/audit?pageSize=100&action=SPLIT_LEAVE_FLAGGED').set(as('hod'));
+    expect(log.body.items.some((i) => i.entityId === ok.body.id && /6 days in a row/.test(i.detail))).toBe(true);
+    // and it follows the two-level route
+    const step = await request(app).post(`/api/leaves/${ok.body.id}/approve`).set(as('rahul')).send({ comment: 'ok' });
+    expect(step.body.status).toBe('PENDING_HOD');
   });
 });

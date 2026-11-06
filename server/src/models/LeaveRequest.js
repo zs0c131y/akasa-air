@@ -35,6 +35,11 @@ const leaveSchema = new mongoose.Schema(
     days: { type: Number, required: true },
     /** Counted days of the whole stretch this request is part of (other active requests that touch it). Decides isLong. */
     chainDays: { type: Number, default: null },
+    /** Calendar days away, first to last day of the whole stretch (other leave that touches this one included). Decides isLong. */
+    absenceDays: { type: Number, default: null },
+    /** True when this request is short alone but joins other leave into a stretch over 3 days. Shown to approvers. */
+    splitFlag: { type: Boolean, default: false },
+    joinedWith: { type: [new mongoose.Schema({ requestId: mongoose.Schema.Types.ObjectId, fromDate: String, toDate: String, days: Number }, { _id: false })], default: [] },
     /** What was left out of the count (Sundays and public holidays), recorded when the request was made. */
     excludedSundays: { type: Number, default: 0 },
     excludedHolidays: { type: [new mongoose.Schema({ date: String, name: String }, { _id: false })], default: [] },

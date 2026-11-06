@@ -4,7 +4,9 @@ Copy everything below the line into your AI coding tool. Work in phases and comm
 
 ---
 
-You are a senior full-stack engineer. Build a production-quality **Leave Management System** for a company hackathon, using the **MERN stack** (MongoDB, Express, React, Node.js). Judges evaluate: coding quality and OOP, API design, database design, scalability, reliability, security, practical AI use with Responsible AI, and customer-obsessed UX. Optimize for a polished, working, demo-able product over feature sprawl. Do NOT write hosting or deployment steps; just keep the app 12-factor (all config via environment variables, a `.env.example`, a health endpoint, stateless server, a Dockerfile per service, and `docker-compose.yml` for local dev).
+You are a senior full-stack engineer. Build a production-quality **Leave Management System** for a company hackathon, using the **MERN stack** (MongoDB, Express, React, Node.js). Judges evaluate: coding quality and OOP, API design, database design, scalability, reliability, security, practical AI use with Responsible AI, and customer-obsessed UX. Optimize for a polished, working, demo-able product over feature sprawl. Keep the app 12-factor (all config via environment variables, a `.env.example`, a health endpoint, stateless server, a Dockerfile per service, and `docker-compose.yml` for local dev) and make it deploy-ready for Railway (see section 10).
+
+**Top priority: meet every requirement in the official problem statement first** (leave management with Employee, Manager and HOD roles). Treat the features below as a checklist; core requirements must be complete, correct and demo-ready before any extra or "additional" feature is started. If the official statement conflicts with anything here, the official statement wins. Extras are a bonus that must never compromise the core.
 
 ## 1. Roles and hierarchy
 Three roles with strict RBAC:
@@ -108,9 +110,40 @@ Helmet + strict CSP, CORS allowlist from env, CSRF protection for cookie auth, r
 - Monorepo: `/server`, `/client`, root `docker-compose.yml`, `.env.example` files, `README.md` (overview, architecture diagram, ER/collection diagram, setup in under 5 commands, API summary, design decisions and tradeoffs, scalability and security notes, AI/Responsible AI section, known limitations and next steps), `SECURITY.md`, `RESPONSIBLE_AI.md`, `DESIGN.md`, `ACCESSIBILITY.md`, `TESTING.md` (test strategy, how to run, coverage), Postman collection or OpenAPI file.
 - A 3-5 minute demo script as `DEMO.md` walking: employee applies -> manager sees conflict warning and approves -> balance updates -> HOD views analytics and policy assistant answers with citations.
 
-## 9. How to work
+## 9. Additional features (only after all core requirements are done and tested)
+Pick the ones that add real user value, in this order, and cut the rest:
+1. Leave **delegation / backup person** while away, with an in-app note to the delegate.
+2. **Comp-off and overtime credit** requests with approval.
+3. **Calendar export** (.ics) and subscribe link so approved leave shows in Google/Outlook calendars.
+4. **Leave encashment/balance forecast**: "if you take these dates, your balance on 31 Dec will be X".
+5. **Smart suggestions**: recommend low-conflict dates around public holidays (long weekends) using plain rules, not AI.
+6. **Saved filters and reports**, scheduled weekly summary email to managers.
+7. **Mobile PWA** (installable, offline-readable balances and calendar).
+8. **Org chart view** showing who reports to whom and who is currently out.
+Each extra needs its own tests and documentation, and must degrade gracefully if disabled via a feature flag.
+
+## 10. Hosting (Railway) and deployment readiness
+- Deploy-ready for **Railway**: separate services for `server` and `client` (or serve the built client from the server), MongoDB via MongoDB Atlas or a Railway Mongo service (must support transactions/replica set), all secrets via Railway environment variables, `PORT` read from env, health check path configured, build and start commands defined in `package.json` scripts, `railway.json`/`nixpacks`/Dockerfile settings as appropriate.
+- Production hardening: `NODE_ENV=production`, trust proxy configured, secure cookies and CORS set from env for the deployed client origin, HTTPS-only, production logging, graceful shutdown, DB connection retry, seed script safe to run once on the deployed DB, no dev-only endpoints exposed.
+- CI/CD: GitHub Actions runs lint, typecheck and tests, and only a green `main` is deployed.
+- Provide `DEPLOYMENT.md` with a step-by-step guide anyone can follow: prerequisites, creating the database, listing every environment variable (name, purpose, example, required or optional), deploying each service, running the seed, verifying with a smoke-test checklist, rolling back, and a troubleshooting section for the common failures (CORS, cookies on cross-site domains, DB connection, wrong port).
+- Put the live URLs and demo credentials at the top of `README.md`.
+
+## 11. Documentation standards (clear terms, explained well)
+The documentation is judged as seriously as the code. Write for a reader who has never seen the project.
+- **Plain language, defined terms**: add a `GLOSSARY.md` (and a short glossary in the README) defining every domain and technical term in simple words, e.g. HOD, ledger, carry-forward, comp-off, RBAC, JWT, refresh token rotation, idempotency, RAG, optimistic locking. Never use a term before defining it. Prefer short sentences and concrete examples over jargon.
+- **README** (the front door): what the product is and who it is for in two sentences, screenshots/GIFs, live demo link and credentials, features by role, quick start in under five commands, architecture diagram, tech stack with one-line reasons for each choice, folder structure, and links to every other doc.
+- **Explain the "why"**: `ARCHITECTURE.md` with diagrams (system context, component, data model/ER, leave-request state machine, auth/refresh flow, RAG flow), the key decisions and tradeoffs (e.g., ledger vs mutable balance, transactions, reference vs embed), and what you would change at 10x scale.
+- **Business rules in one place**: `LEAVE_POLICY_RULES.md` with every rule in a table (leave types, quotas, notice, max days, carry-forward, working-day counting, approval routing, escalation timing) plus worked examples with real dates.
+- **API docs**: OpenAPI/Swagger at `/api/docs`, plus an `API.md` with request/response examples, error codes and auth requirements per endpoint.
+- **User guides**: short, illustrated role-based guides (Employee, Manager, HOD) in `USER_GUIDE.md`, written in non-technical language, answering "How do I apply?", "How do I approve?", "What happens if I cancel?".
+- **Also required**: `DESIGN.md`, `ACCESSIBILITY.md`, `SECURITY.md`, `RESPONSIBLE_AI.md`, `TESTING.md`, `DEPLOYMENT.md`, `DEMO.md`, `CONTRIBUTING.md` and a `CHANGELOG.md`. Keep them consistent, cross-linked, and free of contradictions.
+- In code: meaningful names, JSDoc/TSDoc on public services and non-obvious logic, and no stale or misleading comments.
+- Be honest: include a "Known limitations and future work" section rather than overclaiming.
+
+## 12. How to work
 1. First output a concise plan: folder structure, data models, API list, state machine, and any assumptions. Pause only if something blocks you; otherwise proceed.
-2. Build in phases, committing after each: (1) scaffold + auth + RBAC, (2) models/policies/holidays/seed, (3) leave apply/approve/cancel + ledger + tests, (4) dashboards/calendar/notifications/audit, (5) AI features, (6) hardening, docs, CI.
+2. Build in phases, committing after each: (1) scaffold + auth + RBAC, (2) models/policies/holidays/seed, (3) leave apply/approve/cancel + ledger + tests, (4) dashboards/calendar/notifications/audit, (5) AI features, (6) hardening, CI, Railway deploy-readiness, (7) additional features (only if time remains), (8) full documentation pass and a final requirements-traceability check (a table mapping each official requirement to where it is implemented and tested).
 3. After each phase, run lint, typecheck and tests, and fix failures before moving on. Never leave the app in a broken state.
 4. Prefer simple, readable, well-named code with comments only where logic is non-obvious. No dead code, no TODO placeholders, no hardcoded secrets.
 5. At the end, report what is done, what is not, and how to run and demo it.

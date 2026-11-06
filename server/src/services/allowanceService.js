@@ -128,7 +128,7 @@ const COLUMN_ALIASES = {
   days: ['allowance', 'days', 'leave', 'quota', 'entitlement'],
   year: ['year'],
 };
-const EVERYONE = ['', '*', 'default', 'everyone', 'all', 'everybody'];
+const EVERYONE = ['*', 'default', 'everyone', 'all', 'everybody'];
 
 /**
  * Bulk allowances from pasted CSV (same rules as the holiday import). Columns: email, allowance, year (optional).
@@ -169,7 +169,9 @@ export async function importAllowances(text, { apply = false } = {}) {
     const everyone = EVERYONE.includes(who);
     if (!everyone && !byEmail[who]) {
       status = 'error';
-      message = `We do not have anyone with the email "${cells[ci.email] ?? ''}".`;
+      message = who
+        ? `We do not have anyone with the email "${cells[ci.email]}".`
+        : 'This line has no email. Write an email, or the word default to set it for everyone.';
     } else if (!(cells[ci.days] ?? '').trim() || !validDays(days)) {
       status = 'error';
       message = `"${cells[ci.days] ?? ''}" is not a number of days between 0 and 365.`;

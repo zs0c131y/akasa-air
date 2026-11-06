@@ -91,3 +91,12 @@ describe('inputs the server checks itself', () => {
     expect(r.body.updated).toBe(0);
   });
 });
+
+describe('allowance CSV: a blank email is an error, not "everyone"', () => {
+  it('needs the word default to change the default for everyone', async () => {
+    const { importAllowances } = await import('../src/services/allowanceService.js');
+    const r = await importAllowances('email,allowance\n,12', { apply: false });
+    expect(r.summary.errors).toBe(1);
+    expect(r.rows[0].message).toMatch(/no email/);
+  });
+});

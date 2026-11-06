@@ -522,6 +522,12 @@ function Footer() {
           Not affiliated with Akasa Air. Built as a placement hackathon project, from a problem statement. The name and logo belong to their
           owners.
         </p>
+        <p className="container pb-5 text-center text-sm text-muted-foreground">
+          Built by{' '}
+          <a href="https://adarshg.dev/" className="underline underline-offset-4 hover:text-foreground">
+            Adarsh Gupta
+          </a>
+        </p>
       </div>
     </footer>
   );

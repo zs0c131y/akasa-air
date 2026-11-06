@@ -90,12 +90,12 @@ export default function ApplyPage() {
       <div className="row">
         <div>
           <label htmlFor="fromDate">From</label>
-          <input id="fromDate" type="date" value={form.fromDate} onChange={set('fromDate')} />
+          <input id="fromDate" type="date" value={form.fromDate} min={todayISO()} onChange={set('fromDate')} />
           <FieldError msg={fields.fromDate} />
         </div>
         <div>
           <label htmlFor="toDate">To</label>
-          <input id="toDate" type="date" value={form.toDate} min={form.fromDate} onChange={set('toDate')} />
+          <input id="toDate" type="date" value={form.toDate} min={form.fromDate > todayISO() ? form.fromDate : todayISO()} onChange={set('toDate')} />
           <FieldError msg={fields.toDate} />
         </div>
       </div>

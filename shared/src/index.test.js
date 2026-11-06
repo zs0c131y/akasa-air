@@ -56,7 +56,8 @@ describe('leaveInputSchema', () => {
   it('rejects bad dates, short reason, far past/future', () => {
     expect(leaveInputSchema.safeParse({ ...ok, fromDate: 'nope' }).success).toBe(false);
     expect(leaveInputSchema.safeParse({ ...ok, reason: 'hi' }).success).toBe(false);
-    expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(-400), toDate: plus(-399) }).success).toBe(false);
+    expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(-1), toDate: plus(2) }).success).toBe(false);
+    expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(0), toDate: plus(2) }).success).toBe(true);
     expect(leaveInputSchema.safeParse({ ...ok, fromDate: plus(400), toDate: plus(401) }).success).toBe(false);
   });
 });

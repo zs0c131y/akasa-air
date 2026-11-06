@@ -51,11 +51,11 @@ Seed data has requests in every status, including long leaves waiting at the man
 - A manager's own leave goes straight to the HOD; HOD leave is auto-approved and marked on the timeline.
 - Nobody can decide on their own request; managers only see their own team. Concurrent decisions are guarded by a version check.
 - Employees may cancel while open, or approved leave that has not started. Editing is allowed only before any approval.
-- Dates may be up to 365 days in the past and 365 days ahead; a request spans at most 60 days; overlapping active requests are refused.
+- Leave cannot start in the past (earliest start date is today) and up to 365 days ahead; a request spans at most 60 days; overlapping active requests are refused.
 - Documents: PDF/JPG/PNG, max 5 MB, up to 5 per request, type verified from file contents, stored on local disk and served only through an authenticated endpoint.
 
 ## Layout
 `shared/` validation rules used by client and server · `server/` Express API, Mongoose models, `workflow.js` (state machine), `services/` · `client/` React (Vite) UI.
 
 ## Known limitations (so far)
-No audit-log screen yet (the per-request timeline records every step); basic JWT in session storage and no login lockout/rate limiting yet; no email notifications; the UI has been built but not yet browser-tested or accessibility-audited.
+Basic JWT in session storage and no login lockout/rate limiting yet; no email notifications; the UI has been built but not yet browser-tested or accessibility-audited.

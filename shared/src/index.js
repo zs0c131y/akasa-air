@@ -5,7 +5,7 @@ export const LONG_LEAVE_THRESHOLD_DAYS = 3;
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
-export const MAX_DAYS_IN_PAST = 30;
+export const MAX_DAYS_IN_PAST = 365;
 export const MAX_DAYS_IN_FUTURE = 365;
 export const MAX_LEAVE_DAYS = 60;
 
@@ -124,7 +124,7 @@ export const leaveInputSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['fromDate'],
-        message: `Start date is more than ${MAX_DAYS_IN_PAST} days in the past. Please contact your manager for older leave.`,
+        message: `Start date is more than ${MAX_DAYS_IN_PAST} days in the past. Please pick a more recent date or contact your HOD.`,
       });
     }
     if (to > today + MAX_DAYS_IN_FUTURE * DAY_MS) {

@@ -22,7 +22,8 @@ export const config = {
   },
   /** If empty, an embedded MongoDB is started (persisted under dataDir). */
   get mongoUri() {
-    return process.env.MONGODB_URI || '';
+    const uri = process.env.MONGODB_URI || '';
+    return uri === 'embedded' ? '' : uri; // MONGODB_URI=embedded forces the built-in database
   },
   get dataDir() {
     return process.env.DATA_DIR ?? path.join(root, 'data');

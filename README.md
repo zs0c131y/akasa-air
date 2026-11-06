@@ -26,13 +26,16 @@ Open http://localhost:4000. (Starts MongoDB as a single-node replica set, the ap
 ### Tests
 `npm test` (unit tests for the day-count/validation rules and the workflow state machine, plus API integration tests).
 
-## Demo accounts (password `Password@123` for all)
+## Demo accounts
+On the sign-in page, click any name to sign in with one click (no typing). Accounts:
 | Role | Email |
 |---|---|
 | HOD | priya.nair@akasa.demo |
 | Manager (team: Arjun, Kavya, Rohan) | rahul.mehta@akasa.demo |
 | Manager (team: Sneha, Imran, Meera) | ananya.iyer@akasa.demo |
 | Employee | arjun.sharma@akasa.demo (others: kavya.reddy, rohan.das, sneha.kulkarni, imran.khan, meera.joshi @akasa.demo) |
+
+(The shared demo password is defined in `server/src/seed.js`.)
 
 Seed data has requests in every status, including long leaves waiting at the manager and HOD stage with documents. Imran has an emergency leave with documents still owed.
 
@@ -48,7 +51,7 @@ Seed data has requests in every status, including long leaves waiting at the man
 - A manager's own leave goes straight to the HOD; HOD leave is auto-approved and marked on the timeline.
 - Nobody can decide on their own request; managers only see their own team. Concurrent decisions are guarded by a version check.
 - Employees may cancel while open, or approved leave that has not started. Editing is allowed only before any approval.
-- Dates may be up to 30 days in the past and 365 days ahead; a request spans at most 60 days; overlapping active requests are refused.
+- Dates may be up to 365 days in the past and 365 days ahead; a request spans at most 60 days; overlapping active requests are refused.
 - Documents: PDF/JPG/PNG, max 5 MB, up to 5 per request, type verified from file contents, stored on local disk and served only through an authenticated endpoint.
 
 ## Layout

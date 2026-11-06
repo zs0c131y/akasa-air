@@ -1,7 +1,7 @@
 import { config } from './config.js';
 import { connectDb, disconnectDb } from './db.js';
 import { createApp } from './app.js';
-import { seedIfEmpty, DEMO_PASSWORD, DEMO_USERS } from './seed.js';
+import { seedIfEmpty, DEMO_USERS } from './seed.js';
 
 if (!process.env.JWT_SECRET) console.warn('[config] JWT_SECRET not set; using an insecure development default.');
 
@@ -12,7 +12,7 @@ const server = createApp().listen(config.port, () => {
   const url = `http://localhost:${config.port}`;
   console.log(`\nLeave Management System running at ${url}`);
   console.log(`Health: ${url}/health`);
-  console.log(`\nDemo accounts (password: ${DEMO_PASSWORD})`);
+  console.log('\nDemo accounts (use the one-click buttons on the sign-in page):');
   for (const u of DEMO_USERS.filter((x) => ['HOD', 'MANAGER'].includes(x.role) || x.key === 'arjun')) {
     console.log(`  ${u.role.padEnd(8)} ${u.email}`);
   }

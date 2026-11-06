@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, FilePlus2, Inbox, UserPlus } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChartColumn, FilePlus2, Inbox, UserPlus } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Avatar, ErrorBox, PageHeader, Panel, fmtDate, fmtDateTime } from '../components.jsx';
@@ -182,6 +182,14 @@ export default function HomePage() {
                   <Link to="/calendar">Team calendar</Link>
                 </Button>
               </div>
+              <p className="mt-4 text-sm">
+                <Link
+                  to="/reports"
+                  className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                >
+                  Export my requests
+                </Link>
+              </p>
             </Panel>
 
             <Panel title={approver ? 'Where to go next' : 'Good to know'}>
@@ -195,6 +203,16 @@ export default function HomePage() {
                         <span className="text-sm text-muted-foreground">
                           {q.waiting ? `${plural(q.waiting, 'request')} waiting for your answer` : 'Nothing waiting'}
                         </span>
+                      </span>
+                      <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/reports" className="flex items-center gap-3 py-3 hover:bg-accent/50">
+                      <ChartColumn className="size-5 text-brand" aria-hidden="true" />
+                      <span className="flex-1">
+                        <span className="block font-semibold">Reports</span>
+                        <span className="text-sm text-muted-foreground">Days away by month, and a CSV to download</span>
                       </span>
                       <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
                     </Link>

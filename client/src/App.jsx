@@ -14,6 +14,7 @@ import DetailPage from './pages/DetailPage.jsx';
 import AuditPage from './pages/AuditPage.jsx';
 import HolidaysPage from './pages/HolidaysPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -84,6 +85,9 @@ function Shell({ children }) {
       )}
       <NavLink to="/calendar" className={navClass}>
         Calendar
+      </NavLink>
+      <NavLink to="/reports" className={navClass}>
+        Reports
       </NavLink>
       <NavLink to="/holidays" className={navClass}>
         {user.role === 'HOD' ? 'Settings' : 'Holidays'}
@@ -247,6 +251,7 @@ export default function App() {
           />
         )}
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/holidays" element={<HolidaysPage />} />
         <Route path="/settings" element={<Navigate to="/holidays" replace />} />
         {user.role === 'HOD' && <Route path="/audit" element={<AuditPage />} />}

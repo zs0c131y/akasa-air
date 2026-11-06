@@ -4,6 +4,7 @@ import {
   MAX_FILE_BYTES,
   ALLOWED_MIME,
   STATUSES,
+  STATUS_LABELS,
   leaveBreakdown,
   consecutiveChain,
   absenceDays,
@@ -19,6 +20,7 @@ import {
 import { LeaveRequest } from '../models/LeaveRequest.js';
 import { holidaysFor, listHolidays } from './holidayService.js';
 import { assertEnoughLeave } from './allowanceService.js';
+import { User } from '../models/User.js';
 import { AppError, notFound, conflict, validationError } from '../errors.js';
 import { storage, sniffMime, safeFilename } from '../storage/index.js';
 import { allowedActions, applyAction, initialStatus } from '../workflow.js';
@@ -72,6 +74,7 @@ export function serialize(doc, user) {
     toDate: doc.toDate,
     days: doc.days,
     chainDays: doc.chainDays ?? doc.days,
+    onBehalfOf: doc.onBehalfOf ?? null,
     absenceDays: doc.absenceDays ?? null,
     splitFlag: Boolean(doc.splitFlag),
     joinedWith: (doc.joinedWith ?? []).map((j) => ({
@@ -207,6 +210,109 @@ const chainNote = (chain) =>
     ? ` Together with your other leave (${chain.members.map((m) => `${m.fromDate} to ${m.toDate}`).join(', ')}) this is ${chain.absenceDays} days in a row.`
     : '';
 
+/**
+ * Is this manager away (approved leave) on any of the given days, or today? If so the request cannot wait for them,
+ * so it goes straight to the HOD. Returns the manager's leave, or null.
+ */
+async function managerAway(managerId, from, to) {
+  if (!managerId) return null;
+  const today = todayISO();
+  return LeaveRequest.findOne(
+    {
+      employeeId: managerId,
+      status: 'APPROVED',
+      toDate: { $gte: today },
+      $or: [
+        { fromDate: { $lte: to }, toDate: { $gte: from } },
+        { fromDate: { $lte: today }, toDate: { $gte: today } },
+      ],
+    },
+    { fromDate: 1, toDate: 1, employeeName: 1 },
+  ).lean();
+}
+
+const systemEntry = (action, fromStatus, toStatus, comment) => ({
+  at: new Date(),
+  actorId: null,
+  actorName: 'System',
+  action,
+  fromStatus,
+  toStatus,
+  comment,
+});
+
+const AWAY_NOTE = (away) =>
+  `${away.employeeName}, the manager, is on leave (${away.fromDate} to ${away.toDate}). This went to the HOD to answer on behalf of ${away.employeeName}.`;
+
+/**
+ * After a manager's own leave is approved, requests from their team that are still waiting for them and fall in
+ * those days (or that are waiting while the manager is away today) are passed to the HOD. Returns the ids moved.
+ */
+async function rerouteTeam(managerLeave) {
+  const today = todayISO();
+  const waiting = await LeaveRequest.find({
+    managerId: managerLeave.employeeId,
+    status: 'PENDING_MANAGER',
+    $or: [
+      { fromDate: { $lte: managerLeave.toDate }, toDate: { $gte: managerLeave.fromDate } },
+      ...(managerLeave.fromDate <= today && managerLeave.toDate >= today ? [{}] : []),
+    ],
+  });
+  const moved = [];
+  for (const d of waiting) {
+    d.status = 'PENDING_HOD';
+    d.onBehalfOf = managerLeave.employeeName;
+    d.timeline.push(systemEntry('REROUTED', 'PENDING_MANAGER', 'PENDING_HOD', AWAY_NOTE(managerLeave)));
+    try {
+      await d.save();
+      moved.push(String(d._id));
+    } catch (err) {
+      if (!(err instanceof mongoose.Error.VersionError)) throw err; // someone answered it meanwhile: leave it be
+    }
+  }
+  return moved;
+}
+
+/**
+ * Who else is away on the days of a request, so an approver can see the cover before saying yes.
+ * "Team" is the people with the same manager (or, for a manager's own leave, the other managers).
+ */
+async function overlapsFor(doc) {
+  const teamFilter = doc.managerId ? { managerId: doc.managerId } : { managerId: null };
+  const [others, teamSize] = await Promise.all([
+    LeaveRequest.find(
+      {
+        ...teamFilter,
+        _id: { $ne: doc._id },
+        employeeId: { $ne: doc.employeeId },
+        status: { $in: ['APPROVED', 'PENDING_MANAGER', 'PENDING_HOD', 'INFO_REQUESTED'] },
+        fromDate: { $lte: doc.toDate },
+        toDate: { $gte: doc.fromDate },
+      },
+      { employeeId: 1, employeeName: 1, fromDate: 1, toDate: 1, status: 1 },
+    )
+      .sort({ fromDate: 1 })
+      .limit(20)
+      .lean(),
+    // everyone on the team except the person asking
+    doc.managerId
+      ? User.countDocuments({ managerId: doc.managerId, _id: { $ne: doc.employeeId } })
+      : User.countDocuments({ role: { $in: ['MANAGER', 'HOD'] }, _id: { $ne: doc.employeeId } }),
+  ]);
+  const people = new Set(others.map((o) => String(o.employeeId)));
+  return {
+    away: people.size,
+    teamSize,
+    items: others.map((o) => ({
+      id: String(o._id),
+      name: o.employeeName,
+      fromDate: o.fromDate,
+      toDate: o.toDate,
+      approved: o.status === 'APPROVED',
+    })),
+  };
+}
+
 /** Emergency leaves that still owe documents. */
 async function owedEmergencyLeaves(employeeId, excludeId) {
   const rows = await LeaveRequest.find({
@@ -284,8 +390,17 @@ export async function createLeave(user, body, files) {
   await assertMayApply(user.id, input.isEmergency);
   await assertEnoughLeave(user.id, input.fromDate, input.days);
 
-  const status = initialStatus(user.role);
+  let status = initialStatus(user.role);
+  let onBehalfOf = null;
   const timeline = [entry(user, 'SUBMITTED', null, status, `${input.isEmergency ? 'Emergency leave. ' : ''}${input.reason}`)];
+  if (status === 'PENDING_MANAGER') {
+    const away = await managerAway(user.managerId, input.fromDate, input.toDate);
+    if (away) {
+      timeline.push(systemEntry('REROUTED', 'PENDING_MANAGER', 'PENDING_HOD', AWAY_NOTE(away)));
+      status = 'PENDING_HOD';
+      onBehalfOf = away.employeeName;
+    }
+  }
   if (user.role === 'HOD') {
     timeline.push(entry(user, 'AUTO_APPROVED', 'APPROVED', 'APPROVED', 'HOD leave is auto-approved and flagged for audit.'));
   }
@@ -306,6 +421,7 @@ export async function createLeave(user, body, files) {
     reason: input.reason,
     isEmergency: input.isEmergency,
     status,
+    onBehalfOf,
     documents: await storeFiles(prepared, user),
     timeline,
   });
@@ -320,7 +436,10 @@ async function load(id, user) {
 }
 
 export async function getLeave(id, user) {
-  return serialize(await load(id, user), user);
+  const doc = await load(id, user);
+  const out = serialize(doc, user);
+  if (out.allowedActions.includes('APPROVE')) out.overlaps = await overlapsFor(doc);
+  return out;
 }
 
 export async function listLeaves(user, { scope = 'mine', status, page = 1, pageSize = 20 }) {
@@ -394,7 +513,10 @@ export async function transition(id, user, action, { comment, expectedVersion, f
     : comment;
   doc.timeline.push(entry(user, action, from, next.status, note));
   await save(doc);
-  return serialize(doc, user);
+  const out = serialize(doc, user);
+  // A manager's own leave was just approved: their team's waiting requests for those days go to the HOD.
+  if (action === 'APPROVE' && doc.status === 'APPROVED' && !doc.managerId) out.rerouted = await rerouteTeam(doc);
+  return out;
 }
 
 /** Employee edits dates/reason (and may add documents) before any approval has happened. */
@@ -509,6 +631,80 @@ export async function calendar(user, { from, to }) {
     })),
   };
 }
+
+const CSV_COLUMNS = [
+  'Request ID',
+  'Employee',
+  'Employee ID',
+  'From',
+  'To',
+  'Charged days',
+  'Days in a row',
+  'Status',
+  'Long leave',
+  'Emergency',
+  'Reason',
+  'Filed on',
+  'Last decision',
+  'Decided by',
+  'Decision comment',
+];
+
+/** A cell that spreadsheet programs cannot run as a formula, quoted for CSV. */
+function csvCell(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+/** Requests the person is allowed to see, as CSV. scope: mine or all (managers and HOD). Optional status and date range. */
+export async function exportCsv(user, { scope = 'mine', status, from, to } = {}) {
+  let filter;
+  if (scope === 'mine') filter = { employeeId: user.id };
+  else if (scope === 'all') {
+    if (user.role === 'EMPLOYEE')
+      throw new AppError(403, 'FORBIDDEN', 'Only managers and the HOD can export team requests.', 'Export "mine" instead.');
+    filter = visibilityFilter(user);
+  } else throw validationError({ scope: 'Scope must be mine or all.' });
+  if (status) {
+    if (!STATUSES.includes(status)) throw validationError({ status: 'Unknown status filter.' });
+    filter = { ...filter, status };
+  }
+  if (from && parseISODate(from) === null) throw validationError({ from: 'Please use a date like 2026-11-01.' });
+  if (to && parseISODate(to) === null) throw validationError({ to: 'Please use a date like 2026-11-01.' });
+  if (from) filter = { ...filter, toDate: { $gte: from } };
+  if (to) filter = { ...filter, fromDate: { $lte: to } };
+  const rows = await LeaveRequest.find(filter).sort({ fromDate: -1 }).limit(5000).lean();
+  const people = await User.find({ _id: { $in: [...new Set(rows.map((r) => String(r.employeeId)))] } }, { employeeCode: 1 }).lean();
+  const code = Object.fromEntries(people.map((p) => [String(p._id), p.employeeCode]));
+  const lines = [CSV_COLUMNS.map(csvCell).join(',')];
+  for (const r of rows) {
+    const decision = [...r.timeline].reverse().find((t) => ['APPROVE', 'REJECT', 'AUTO_APPROVED', 'CANCEL'].includes(t.action));
+    lines.push(
+      [
+        String(r._id),
+        r.employeeName,
+        code[String(r.employeeId)] ?? '',
+        r.fromDate,
+        r.toDate,
+        r.days,
+        r.absenceDays ?? r.days,
+        STATUS_LABELS[r.status] ?? r.status,
+        r.isLong ? 'Yes' : 'No',
+        r.isEmergency ? 'Yes' : 'No',
+        r.reason,
+        new Date(r.createdAt).toISOString().slice(0, 10),
+        decision ? (ACTION_WORD[decision.action] ?? decision.action) : '',
+        decision?.actorName ?? '',
+        decision?.comment ?? '',
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+  }
+  return { csv: `\uFEFF${lines.join('\r\n')}\r\n`, count: rows.length };
+}
+const ACTION_WORD = { APPROVE: 'Approved', REJECT: 'Rejected', AUTO_APPROVED: 'Approved automatically', CANCEL: 'Cancelled' };
 
 /** Returns { stream, name, mimeType } after an access check. */
 export async function openDocument(id, docId, user) {

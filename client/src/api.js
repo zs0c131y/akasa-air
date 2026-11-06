@@ -94,6 +94,21 @@ export const api = {
   act: (id, action, json = {}) => request(`/leaves/${id}/${action}`, { method: 'POST', json }),
   reply: (id, form) => request(`/leaves/${id}/reply`, { method: 'POST', form }),
   attach: (id, form) => request(`/leaves/${id}/documents`, { method: 'POST', form }),
+  monthly: (year) => request(`/stats/monthly?${new URLSearchParams({ year })}`),
+  /** Downloads the CSV through the cookie session and saves it with a temporary link. */
+  async exportCsv(params) {
+    const res = await request(`/leaves/export.csv?${new URLSearchParams(params)}`, { raw: true });
+    const name = /filename="?([^";]+)"?/i.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'leave-requests.csv';
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return name;
+  },
   async openDocument(id, docId) {
     const res = await request(`/leaves/${id}/documents/${docId}`, { raw: true });
     const url = URL.createObjectURL(await res.blob());

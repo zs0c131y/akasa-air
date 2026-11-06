@@ -35,6 +35,8 @@ const leaveSchema = new mongoose.Schema(
     days: { type: Number, required: true },
     /** Counted days of the whole stretch this request is part of (other active requests that touch it). Decides isLong. */
     chainDays: { type: Number, default: null },
+    /** Set when the manager was on leave and the HOD answers for them: the manager's name. */
+    onBehalfOf: { type: String, default: null },
     /** Calendar days away, first to last day of the whole stretch (other leave that touches this one included). Decides isLong. */
     absenceDays: { type: Number, default: null },
     /** True when this request is short alone but joins other leave into a stretch over 3 days. Shown to approvers. */

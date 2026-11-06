@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Manager away: requests for the days a manager is on leave go to the HOD, who answers on the manager's behalf (shown in history, badge, notice, notification and audit log).
+- Overlap warning for approvers, CSV export of requests, leave-by-month report page.
+- Repository reorganised: documentation under `docs/`, `MASTER_GUIDE.md` at the root, `npm run package` builds the submission zip.
+- README restructured: system design, tools, how to run, features (required, plus points, additions), future goals.
 - Profile: employee ID (AKA-0001 and so on), department, location, manager and leave balance on the account menu and Account page.
 - Yearly leave allowance: 30 days by default. The HOD can change the default, change one person's allowance, or paste/upload a CSV (`email,allowance,year`) using the same preview-then-apply flow as the holiday import. Requests that would use more than is left are stopped with a clear message; rejected, cancelled or edited requests give the days back.
 - Notifications: in-app notices (bell, unread count, mark read) when a request is filed, approved, passed on, rejected, questioned, replied to or cancelled. Email is optional per person, and is never sent to made-up addresses such as @akasa.demo.
@@ -17,7 +21,7 @@
 - Bulk holiday import (paste or upload CSV/TSV, day-first dates, preview, all-or-nothing apply, duplicates skipped).
 - Public holidays are never counted as leave: holiday calendar (HOD-managed, `/api/holidays`), seeded fixed-date national holidays, `excluded` breakdown stored on each request and shown in the UI.
 - Documents are only accepted, and the upload box only shown, for leave over 3 days.
-- Renamed the product to Layover (Akasa Air logo and branding), light theme by default, new design (see DESIGN.md).
+- Renamed the product to Layover (Akasa Air logo and branding), light theme by default, new design (see docs/architecture/DESIGN.md).
 - Full redesign: landing page, new sign-in, light/dark theme toggle, text-size control, Tailwind + shadcn-style components, self-hosted fonts; rewrote DESIGN.md.
 - Sundays are no longer counted as leave days (a Sunday-only request is refused; document due dates skip Sundays).
 - Design polish: design tokens, automatic dark theme, sticky header with brand mark and avatar, skip link, refined cards and forms; added DESIGN.md.

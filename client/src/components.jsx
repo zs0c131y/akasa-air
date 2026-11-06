@@ -89,6 +89,7 @@ export function Badges({ leave }) {
       {leave.isLong && <Badge variant="blue">Long leave</Badge>}
       {leave.splitFlag && <Badge variant="amber">In a row with other leave</Badge>}
       {leave.isEmergency && <Badge variant="red">Emergency</Badge>}
+      {leave.onBehalfOf && <Badge variant="blue">On behalf of {leave.onBehalfOf}</Badge>}
       {leave.documentsPending && <Badge variant="amber">Documents due {leave.documentsDueBy}</Badge>}
     </>
   );
@@ -270,4 +271,5 @@ export const ACTION_LABELS = {
   EDIT: 'Edited',
   ATTACH: 'Sent documents',
   AUTO_APPROVED: 'Auto-approved',
+  REROUTED: 'Passed to the HOD',
 };

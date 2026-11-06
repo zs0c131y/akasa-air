@@ -283,6 +283,19 @@ export function buildOpenApi() {
           responses: { 200: ok('What you owe and what you may apply for', { type: 'object' }) },
         }),
       },
+      '/leaves/export.csv': {
+        get: op('Leave requests', 'Download requests as a spreadsheet (CSV)', {
+          description:
+            'Only requests you may see. scope=mine (default) or all (managers and HOD). Cells that could run as spreadsheet formulas are neutralised. The download is written to the audit log.',
+          parameters: [
+            q('scope', 'mine or all', { type: 'string', enum: ['mine', 'all'] }),
+            q('status', 'Filter by status'),
+            q('from', 'Leave ending on or after', { type: 'string', format: 'date' }),
+            q('to', 'Leave starting on or before', { type: 'string', format: 'date' }),
+          ],
+          responses: { 200: { description: 'A CSV file', content: { 'text/csv': { schema: { type: 'string' } } } }, ...only(400, 403) },
+        }),
+      },
       '/leaves/chain': {
         get: op('Leave requests', 'Check dates against your other leave', {
           description: 'What the dates cost and whether they join up with other leave into a long stretch. The apply form calls this.',
@@ -396,6 +409,24 @@ export function buildOpenApi() {
       '/stats': {
         get: op('Calendar and numbers', 'Numbers for the home screen', {
           responses: { 200: ok('Your numbers. Managers and the HOD also get queue, team and decisions.', ref('Stats')) },
+        }),
+      },
+      '/stats/monthly': {
+        get: op('Calendar and numbers', 'Leave by month', {
+          description:
+            'Charged days approved and waiting, requests and people, for each month of a year. A request counts in the month it starts. Employees see their own; managers their team; the HOD everyone.',
+          parameters: [q('year', 'Defaults to this year', { type: 'integer' })],
+          responses: {
+            200: ok('Twelve months and totals', {
+              type: 'object',
+              properties: {
+                year: { type: 'integer' },
+                months: { type: 'array', items: { type: 'object' } },
+                totals: { type: 'object' },
+                busiest: { type: 'string', nullable: true },
+              },
+            }),
+          },
         }),
       },
       '/balance': {

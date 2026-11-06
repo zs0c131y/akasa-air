@@ -44,7 +44,7 @@ export default [
   { files: ['client/**/*.test.{js,jsx}', 'client/src/test-setup.js'], languageOptions: { globals: { ...globals.vitest } } },
   { files: ['**/*.test.js', 'server/test/**'], languageOptions: { globals: { ...globals.vitest } } },
   {
-    files: ['client/tailwind.config.js', 'client/postcss.config.js', 'client/vite.config.js', 'eslint.config.js'],
+    files: ['scripts/**/*.mjs', 'client/tailwind.config.js', 'client/postcss.config.js', 'client/vite.config.js', 'eslint.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
   prettier,

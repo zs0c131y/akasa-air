@@ -17,6 +17,8 @@ const ACTIONS = [
   'LEAVE_REQUEST_INFO',
   'LEAVE_REPLY',
   'LEAVE_CANCEL',
+  'LEAVE_REROUTED',
+  'LEAVE_EXPORTED',
   'DOCUMENT_UPLOADED',
   'DOCUMENT_VIEWED',
   'HOLIDAY_ADDED',
@@ -41,11 +43,12 @@ function tone(a) {
   if (RED.includes(a)) return 'red';
   if (a === 'LEAVE_APPROVE') return 'green';
   if (a === 'LEAVE_REQUEST_INFO') return 'purple';
-  if (a.startsWith('HOLIDAY') || a === 'SPLIT_LEAVE_FLAGGED') return 'amber';
+  if (a.startsWith('HOLIDAY') || a === 'SPLIT_LEAVE_FLAGGED' || a === 'LEAVE_REROUTED') return 'amber';
   if (BLUE.includes(a)) return 'blue';
   return 'neutral';
 }
-const label = (a) => a.replace('LEAVE_', '').replaceAll('_', ' ').toLowerCase();
+const LABELS = { LEAVE_REROUTED: 'passed to the HOD', LEAVE_EXPORTED: 'exported to CSV' };
+const label = (a) => LABELS[a] ?? a.replace('LEAVE_', '').replaceAll('_', ' ').toLowerCase();
 
 export default function AuditPage() {
   const [action, setAction] = useState('');

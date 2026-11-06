@@ -46,6 +46,16 @@ function parse(schema, body) {
   return r.data;
 }
 
+leavesRouter.get('/export.csv', async (req, res) => {
+  const q = req.query;
+  const s = (v) => (typeof v === 'string' && v ? v : undefined);
+  const { csv, count } = await svc.exportCsv(req.user, { scope: s(q.scope), status: s(q.status), from: s(q.from), to: s(q.to) });
+  await audit(req, { action: 'LEAVE_EXPORTED', detail: `${count} request(s), ${s(q.scope) ?? 'mine'}` });
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="leave-requests-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(csv);
+});
+
 leavesRouter.get('/chain', async (req, res) => {
   const { from, to, excludeId } = req.query;
   res.json(
@@ -78,6 +88,14 @@ leavesRouter.post('/', upload, async (req, res) => {
     `${leave.days} day(s)${leave.isEmergency ? ', emergency' : ''}${leave.isLong ? ', long leave' : ''}; ${docCount(req) ?? 'no documents'}${req.user.role === 'HOD' ? '; HOD leave auto-approved' : ''}`,
   );
   if (leave.splitFlag) await flagSplit(req, leave);
+  if (leave.timeline.some((t) => t.action === 'REROUTED')) {
+    await audit(req, {
+      action: 'LEAVE_REROUTED',
+      entityId: leave.id,
+      employeeName: leave.employeeName,
+      detail: 'Manager is on leave: sent straight to the HOD',
+    });
+  }
   await notifyLeaveEvent('SUBMITTED', leave.id, req.user);
   res.status(201).json(leave);
 });
@@ -99,6 +117,10 @@ const decision = (path, action, schema) =>
     const leave = await svc.transition(req.params.id, req.user, action, { comment, expectedVersion: req.body?.version });
     await logResult(req, `LEAVE_${action}`, leave);
     await notifyLeaveEvent(action, leave.id, req.user);
+    for (const id of leave.rerouted ?? []) {
+      await audit(req, { action: 'LEAVE_REROUTED', entityId: id, detail: 'Manager is on leave: sent straight to the HOD' });
+      await notifyLeaveEvent('REROUTED', id, req.user);
+    }
     res.json(leave);
   });
 

@@ -70,10 +70,26 @@ export async function notifyLeaveEvent(action, leaveId, actor) {
           await notify(a, {
             kind: 'WAITING',
             title: `${leave.employeeName} asked for leave`,
-            body: `${what}. It is waiting for you.`,
+            body: `${what}. It is waiting for you.${leave.onBehalfOf && leave.status === 'PENDING_HOD' ? ` Please answer on behalf of ${leave.onBehalfOf}, who is on leave.` : ''}`,
             leaveId,
           });
       }
+      return;
+    }
+    if (action === 'REROUTED') {
+      await notify(employee, {
+        kind: 'REROUTED',
+        title: 'Your request went to the HOD',
+        body: `${what}. ${leave.onBehalfOf ?? 'Your manager'} is on leave, so the head of department will answer it on their behalf.`,
+        leaveId,
+      });
+      for (const a of await hods())
+        await notify(a, {
+          kind: 'WAITING',
+          title: `${leave.employeeName}'s request is waiting for you`,
+          body: `${what}. Please answer on behalf of ${leave.onBehalfOf ?? 'their manager'}, who is on leave.`,
+          leaveId,
+        });
       return;
     }
     if (action === 'APPROVE') {

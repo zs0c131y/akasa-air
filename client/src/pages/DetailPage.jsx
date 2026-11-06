@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, FileText, MessageCircleQuestion, Pencil, Send, Upload, X } from 'lucide-react';
+import { ArrowLeft, Check, FileText, MessageCircleQuestion, Pencil, Send, Upload, Users, X } from 'lucide-react';
 import { rejectSchema, infoRequestSchema, excludedSummary, zodFields } from '@lms/shared';
 import { api } from '../api.js';
 import {
@@ -20,6 +20,45 @@ import { useAuth } from '../auth.jsx';
 import { Button } from '../ui/button.jsx';
 import { Input, Label, Textarea } from '../ui/input.jsx';
 import { Skeleton } from '../ui/skeleton.jsx';
+
+/** Who else on the team is away on the same days, shown to the person who has to decide. */
+function Overlaps({ overlaps, managers }) {
+  const { away, teamSize, items } = overlaps;
+  if (away === 0) {
+    return (
+      <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-soft">
+        {managers ? 'No other manager is away on those days.' : 'Nobody else on the team is away on those days.'}
+      </p>
+    );
+  }
+  const noun = managers ? (teamSize === 1 ? 'manager' : 'managers') : teamSize === 1 ? 'teammate' : 'teammates';
+  return (
+    <section
+      aria-label="Who else is away"
+      className="rounded-lg border border-status-amber-fg/30 bg-status-amber-bg p-4 text-status-amber-fg"
+    >
+      <h2 className="flex gap-2 font-semibold">
+        <Users className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        <span>
+          {away} of {teamSize} {noun} {away === 1 ? 'is' : 'are'} away on those days
+        </span>
+      </h2>
+      <ul className="mt-3 space-y-2.5">
+        {items.map((o) => (
+          <li key={o.id} className="flex items-center gap-3">
+            <Avatar name={o.name} className="size-9 shrink-0" />
+            <span className="min-w-0 text-sm">
+              <span className="block font-semibold">{o.name}</span>
+              <span className="block">
+                {fmtDate(o.fromDate)} to {fmtDate(o.toDate)}, {o.approved ? 'approved' : 'waiting for an answer'}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function DetailPage() {
   const { id } = useParams();
@@ -161,6 +200,15 @@ export default function DetailPage() {
               . Together that is {leave.absenceDays} days in a row, so it needs a document and the HOD's approval.
             </Notice>
           )}
+          {leave.onBehalfOf && (
+            <Notice>
+              {isApprover
+                ? `${leave.onBehalfOf} is on leave, so this request came to you. You are answering on their behalf.`
+                : isOwner
+                  ? `${leave.onBehalfOf}, your manager, is on leave, so the head of department will answer this on their behalf.`
+                  : `${leave.onBehalfOf}, ${leave.employeeName}'s manager, is on leave, so the head of department will answer this on their behalf.`}
+            </Notice>
+          )}
           {leave.isLong && (
             <p className="text-sm text-muted-foreground">
               This is long leave (more than 3 days in a row), so it needs a yes from the manager and then from the HOD.
@@ -176,6 +224,9 @@ export default function DetailPage() {
         {hasSidePanel && (
           <aside aria-label="Actions" className="space-y-4 lg:sticky lg:top-36 lg:col-start-2 lg:row-span-3 lg:row-start-1">
             <ErrorBox error={error} />
+            {isApprover && leave.overlaps && (
+              <Overlaps overlaps={leave.overlaps} managers={user.role === 'HOD' && leave.status === 'PENDING_MANAGER'} />
+            )}
             {isApprover && (
               <Panel title="Your decision">
                 <Label htmlFor="comment">Comment</Label>
@@ -292,7 +343,8 @@ export default function DetailPage() {
                 <p>
                   <strong className="font-semibold">{ACTION_LABELS[t.action] ?? t.action}</strong>{' '}
                   <span className="text-muted-foreground">
-                    by {t.actorName} ({t.actorRole})
+                    by {t.actorName}
+                    {t.actorRole ? ` (${t.actorRole})` : ''}
                   </span>
                 </p>
                 <p className="font-mono text-xs text-muted-foreground">{fmtDateTime(t.at)}</p>

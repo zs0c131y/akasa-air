@@ -23,9 +23,9 @@ const LIMIT = LONG_LEAVE_THRESHOLD_DAYS;
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-rule bg-background">
-      <div className="container flex h-[4.25rem] items-center gap-4">
+      <div className="container flex h-[4.25rem] items-center gap-2 sm:gap-4">
         <Link to="/" aria-label="Layover by Akasa Air, home" className="shrink-0 rounded-sm">
-          <Brand compact className="sm:hidden" />
+          <Brand compact className="sm:hidden max-[380px]:[&>span:last-child]:hidden" />
           <Brand className="hidden sm:inline-flex" />
         </Link>
         <nav aria-label="Sections" className="ml-6 hidden items-center gap-1 lg:flex">
@@ -39,15 +39,22 @@ function Header() {
             </a>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-1.5">
-          <Button asChild variant="ghost" className="hidden sm:inline-flex">
+        <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+          <Button asChild variant="ghost" className="px-2.5 sm:px-5">
             <Link to="/login">Sign in</Link>
           </Button>
           <Button asChild variant="outline" className="hidden md:inline-flex">
             <Link to="/signup">Create account</Link>
           </Button>
-          <Button asChild variant="brand" className="px-4">
-            <a href="#demo">Try the demo</a>
+          <Button asChild variant="brand" className="px-3 sm:px-4">
+            <a href="#demo" aria-label="Try the demo">
+              <span aria-hidden="true" className="sm:hidden">
+                Demo
+              </span>
+              <span aria-hidden="true" className="hidden sm:inline">
+                Try the demo
+              </span>
+            </a>
           </Button>
           <ThemeToggle />
         </div>

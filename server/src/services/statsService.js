@@ -93,3 +93,47 @@ export async function dashboardStats(user) {
   if (user.role === 'HOD') out.awaitingSetup = await countAwaitingSetup();
   return out;
 }
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Leave by month for a year, for whoever the person looks after: charged days approved and waiting, how many requests,
+ * and how many people. A request is counted in the month it starts. Employees see only their own.
+ */
+export async function monthlyStats(user, year = Number(todayISO().slice(0, 4))) {
+  const rows = await LeaveRequest.find(
+    { ...scopeFilter(user), fromDate: { $regex: `^${year}-` }, status: { $in: ['APPROVED', 'REJECTED', ...OPEN] } },
+    { employeeId: 1, fromDate: 1, days: 1, status: 1 },
+  ).lean();
+  const months = MONTH_NAMES.map((name, i) => ({
+    month: i + 1,
+    name,
+    approvedDays: 0,
+    waitingDays: 0,
+    requests: 0,
+    rejected: 0,
+    people: 0,
+    _who: new Set(),
+  }));
+  for (const r of rows) {
+    const m = months[Number(r.fromDate.slice(5, 7)) - 1];
+    m.requests += 1;
+    if (r.status === 'APPROVED') {
+      m.approvedDays += r.days;
+      m._who.add(String(r.employeeId));
+    } else if (r.status === 'REJECTED') m.rejected += 1;
+    else m.waitingDays += r.days;
+  }
+  const out = months.map(({ _who, ...m }) => ({ ...m, people: _who.size }));
+  const peak = out.reduce((best, m) => (m.approvedDays > best.approvedDays ? m : best), out[0]);
+  return {
+    year,
+    months: out,
+    totals: {
+      approvedDays: out.reduce((n, m) => n + m.approvedDays, 0),
+      waitingDays: out.reduce((n, m) => n + m.waitingDays, 0),
+      requests: out.reduce((n, m) => n + m.requests, 0),
+    },
+    busiest: peak.approvedDays > 0 ? peak.name : null,
+  };
+}

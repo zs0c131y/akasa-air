@@ -10,6 +10,7 @@ Run everything: `npm test` (the server tests start a throwaway in-memory MongoDB
 | `server/test/security.test.js` | Cookie sessions, CSRF header, refresh rotation and replay revocation, logout, account lockout, operator injection, security headers, CORS allowlist, rate limiting |
 | `shared/src/index.test.js` (leave in a row) | Touching requests, Sunday and holiday gaps, working-day gaps, chains in both directions |
 | `server/test/allowance-notify.test.js` | Profile and employee IDs, 30-day allowance (blocked when too big, HOD overrides, days returned on reject), allowance CSV import (HOD only, preview, all-or-nothing, default row), notifications (who is told, read state, both approvals, question and reply, cancel), email never sent to demo addresses, email preference |
+| `server/test/extras.test.js` | Manager away (reroute on filing and on approval, "on behalf of", notices, audit), overlap warning (approvers only), CSV export (scopes, filters, formula safety, audit), leave by month |
 | `server/test/docs.test.js` | The OpenAPI file describes exactly the routes in the code, is well formed, and the docs page loads |
 | `server/test/account.test.js` | Sign-up (weak password, duplicate, domain limit), no leave until the HOD chooses a manager, promote/demote, email confirmation (Mailgun stubbed), forgot and reset password (single use, signs out other sessions, clears lockout), change password |
 | `server/test/holidayImport.test.js` | Date formats (ISO, day-first numeric, month names), CSV/TSV/semicolon parsing, quotes, BOM, headers in any order |

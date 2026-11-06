@@ -73,3 +73,12 @@ Each person has in-app notices (the bell in the header). They are created when:
 - a request is cancelled (the approver it was waiting for).
 
 Emails are sent for the same events only when Mailgun is configured, the person has not switched emails off on their Account page, and their address is real. Addresses ending in `.demo`, `.test`, `.example`, `.invalid`, `.local` or `.localhost`, and `example.com/.org/.net`, are never emailed (add more with `NO_EMAIL_DOMAINS`), so demo accounts cost no sending quota.
+
+## Manager away
+If a manager has approved leave covering the requested days (or today), an employee's request skips the manager and goes straight to the HOD, who answers **on behalf of that manager**. It also applies to waiting requests when the manager's own leave is approved. The history shows a "Passed to the HOD" entry by System, the request carries `onBehalfOf` (the manager's name, shown as a badge and a notice), the HOD's notification says to answer on that manager's behalf, and `LEAVE_REROUTED` is written to the audit log. Documents are still required for long leave.
+
+## Overlap warning
+When an approver opens a request, the API adds `overlaps`: how many other people on the same team (everyone with the same manager; for a manager's own leave, the other managers) are away on those days, who, and the team size without the requester. Employees never get this.
+
+## Reports and export
+`GET /api/stats/monthly` returns approved days, waiting days, requests and people per month (a request counts in the month it starts). `GET /api/leaves/export.csv` downloads requests as CSV for what the person may see, with spreadsheet formulas neutralised, and records the download in the audit log.
